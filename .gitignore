@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.idea/
+build/
+dist/
+node_modules/
+# Raw screen recordings from scripts/capture; only the trimmed GIF and PNGs are committed.
+docs/media/*.webm

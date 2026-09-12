@@ -1,0 +1,114 @@
+[project]
+name = "meddler"
+version = "0.1.0"
+description = "A deterministic zero-player world simulator you can rewind, fork, and meddle with."
+readme = "README.md"
+# PEP 639 license expression. A "License :: OSI Approved ::" classifier cannot be used
+# alongside it -- setuptools rejects the combination -- and the expression is what PyPI and
+# tooling read.
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Parth Mittal" }]
+requires-python = ">=3.11"
+# websockets.asyncio (the server and client API used here) first shipped in 13.0.
+dependencies = ["websockets>=13.1"]
+keywords = [
+    "simulation",
+    "zero-player",
+    "deterministic",
+    "time-travel",
+    "counterfactual",
+    "world-simulator",
+    "causality",
+    "websocket",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: JavaScript",
+    "Topic :: Games/Entertainment :: Simulation",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+
+[project.urls]
+Homepage = "https://privatepanda.co/projects/meddler/"
+Repository = "https://github.com/ThePrivatePanda/meddler"
+Issues = "https://github.com/ThePrivatePanda/meddler/issues"
+Changelog = "https://github.com/ThePrivatePanda/meddler/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = ["pytest", "hypothesis", "ruff", "mypy", "import-linter", "pytest-cov", "pytest-xdist"]
+
+[project.scripts]
+meddler = "meddler.cli:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+# Packages are listed explicitly so the browser frontend can ship inside the wheel as
+# `meddler.web` while its source stays at the repository root (docs, tests and the static
+# demo build all refer to `web/`). tests/test_packaging.py fails if a new subpackage under
+# meddler/ is missing from this list.
+[tool.setuptools]
+packages = [
+    "meddler",
+    "meddler.bridge",
+    "meddler.engine",
+    "meddler.engine.kinds",
+    "meddler.engine.systems",
+    "meddler.text",
+    "meddler.web",
+]
+
+[tool.setuptools.package-dir]
+"meddler.web" = "web"
+
+[tool.setuptools.package-data]
+"meddler.web" = [
+    "**/*.html", "**/*.js", "**/*.css", "**/*.svg", "**/*.ico", "**/*.png", "**/*.json",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: long multi-seed simulations (minutes); CI runs them, `-m \"not slow\"` skips them locally",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.11"
+
+[[tool.mypy.overrides]]
+module = "meddler.engine.*"
+strict = true
+
+[tool.importlinter]
+root_package = "meddler"
+
+[[tool.importlinter.contracts]]
+name = "Layering"
+type = "layers"
+layers = [
+    "meddler.bridge",
+    "meddler.text",
+    "meddler.engine",
+]
+
+[[tool.importlinter.contracts]]
+name = "space is a leaf"
+type = "forbidden"
+source_modules = ["meddler.engine.space"]
+forbidden_modules = ["meddler.engine.model"]

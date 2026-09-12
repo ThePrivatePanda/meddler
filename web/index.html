@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meddler · a time-travel debugger for history</title>
+<meta name="description" content="A deterministic world that runs itself. Every headline has a recorded cause; scrub back to any tick, ask why anything happened, then meddle and watch a forked timeline diverge.">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Meddler · a time-travel debugger for history">
+<meta property="og:description" content="A deterministic world that runs itself. Ask why anything happened, rewind to any tick, and fork history with a single intervention.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">MEDDLER</div>
+  <div class="clock">
+    <span id="clockDate">Connecting…</span>
+    <span id="clockTick" class="mono">t—</span>
+  </div>
+  <div class="transport">
+    <button id="btnPause" class="tbtn" title="Pause / resume [space]" aria-label="Pause">⏸</button>
+    <div class="speeds" id="speeds" role="group" aria-label="Playback speed">
+      <button data-tps="0.5" aria-label="Half speed" title="Half speed [1]">½×</button>
+      <button data-tps="1" class="on" aria-label="1 tick per second" title="1 tick per second [2]">1×</button>
+      <button data-tps="2" aria-label="2 ticks per second" title="2 ticks per second [3]">2×</button>
+      <button data-tps="4" aria-label="4 ticks per second" title="4 ticks per second [4]">4×</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div id="activityIndicator" role="status" aria-live="polite" hidden>
+    <i></i><span id="activityText">Working…</span>
+  </div>
+  <span class="seedchip mono" id="seedChip">seed —</span>
+  <button id="btnAnnals" class="tbtn" title="The Annals [h]" aria-label="The Annals">📜</button>
+  <button id="btnTrade" class="tbtn tradebtn" title="Trade Operations [v]" aria-label="Trade Operations">⇄ TRADE</button>
+  <button id="btnCheckpoints" class="tbtn" title="Checkpoints [c]" aria-label="Checkpoints">◈</button>
+  <button id="btnSettings" class="tbtn" title="World settings" aria-label="World settings">⚙</button>
+  <button id="btnGod" class="godbtn" title="Intervene [g]">✦ Intervene</button>
+  <button id="btnHelp" class="tbtn" title="Help [?]" aria-label="Help and keyboard shortcuts">?</button>
+</header>
+
+<div id="tlbar" class="glass" hidden>
+  <span class="forkglyph">✦</span>
+  <div id="tlTabs"></div>
+  <div class="spacer"></div>
+  <button id="btnNewFork" class="forkbtn adopt" title="Fork a new timeline [g]">✦ New fork</button>
+</div>
+
+<main id="grid">
+  <aside id="world" class="pane">
+    <div class="panehead">WORLD <span id="worldTL" class="tlnote" hidden></span></div>
+    <div id="worldList"><p class="hint">Connecting to the engine…</p></div>
+  </aside>
+
+  <div id="centercol">
+    <section id="globePane" class="pane">
+      <div class="panehead">
+        ORBIT
+        <span class="spacer"></span>
+        <span class="layerchip" id="layerSea">sea</span>
+        <span class="layerchip" id="layerAir">air</span>
+        <span class="layerchip" id="layerRail">rail</span>
+        <span class="zoomchip mono" id="zoomChip">1.0×</span>
+      </div>
+      <canvas id="globe" aria-label="Globe of the simulated world. Drag to rotate, scroll to zoom, click a nation or lane to inspect it."></canvas>
+    </section>
+
+    <section id="chron" class="pane">
+      <div id="chronCols">
+        <div class="chroncol" id="colA">
+          <div class="panehead" id="headA">CHRONICLE</div>
+          <ol class="feed" id="feedA"></ol>
+        </div>
+        <div class="chroncol" id="colB" hidden>
+          <div class="panehead violet" id="headB">TIMELINE B ✦</div>
+          <ol class="feed" id="feedB"></ol>
+        </div>
+      </div>
+      <button id="followPill" hidden>↑ Back to the latest</button>
+    </section>
+  </div>
+
+  <aside id="inspector" class="pane">
+    <div class="panehead">INSPECTOR</div>
+    <div id="inspBody"><p class="hint">Select a headline or a country.<br>Press <kbd>t</kbd> on an event to trace its lineage,<br><kbd>d</kbd> on a country for the full dossier.</p></div>
+  </aside>
+</main>
+
+<div id="deltaStrip" hidden></div>
+
+<div id="scrubBanner" class="glass" hidden>
+  <span class="mono" id="scrubText">VIEWING PAST</span>
+  <button id="btnResumeLive">Resume live ▶</button>
+  <button id="btnCkHere">◈ Save checkpoint</button>
+  <button id="btnForkHere" class="violetbtn">✦ Intervene here</button>
+</div>
+
+<footer id="footer">
+  <canvas id="ribbon" aria-label="Timeline ribbon. Click or drag to view the past; arrow keys step one tick."></canvas>
+  <div id="hints">
+    <kbd>space</kbd> pause · <kbd>←</kbd><kbd>→</kbd> step · <kbd>g</kbd> intervene · <kbd>t</kbd> trace ·
+    <kbd>d</kbd> dossier · <kbd>h</kbd> annals · <kbd>v</kbd> trade · <kbd>c</kbd> checkpoints · <kbd>esc</kbd> back · <kbd>?</kbd> help
+  </div>
+</footer>
+
+<div id="overlay" hidden>
+  <div id="overlayCard" class="glass" role="dialog" aria-modal="true" tabindex="-1"></div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script src="engine.js"></script>
+<script src="realengine.js"></script>
+<script src="globe.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "meddler-capture",
+  "private": true,
+  "description": "Scripted screenshots and demo GIF for the Meddler README",
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "capture": "node capture.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}
