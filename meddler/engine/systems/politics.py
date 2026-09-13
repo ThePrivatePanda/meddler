@@ -532,6 +532,7 @@ def _annex_country(world: World, rng: Rng, event: Event) -> None:
         before=CountryStatus.OCCUPIED.value,
         after=CountryStatus.ANNEXED.value,
     )
+    _detach_annexed(world, event, annexed.code, annexer.code)
 
 
 def _replay_annex_country(world: World, event: Event) -> None:
@@ -588,6 +589,110 @@ def _replay_annex_country(world: World, event: Event) -> None:
     if isinstance(innovation_after, (int, float)):
         annexer.innovation_mult = float(innovation_after)
     annexed.status = CountryStatus.ANNEXED
+    _replay_detach_annexed(world, event, annexed.code, annexer.code)
+
+
+def _detach_annexed(world: World, event: Event, annexed: str, annexer: str) -> None:
+    """Remove a country that has just been annexed from everything that names it.
+
+    Blocs, tariffs, embargoes and occupations all record a country by code, and the systems
+    that read them do not ask whether that code is still a country: an annexed bloc member
+    kept taking relation shifts and could break its alliance, a tariff against it could be
+    repealed or retaliated against, and a country it occupied could be annexed into a state
+    that no longer existed. An occupation it held passes to the annexer, which took its
+    territory; if the occupied country is the annexer itself, the occupation simply ends.
+    Only what actually changed is payload-recorded, so an ordinary annexation's payload is
+    unchanged and replay never re-derives membership.
+    """
+    bloc = world.bloc_of(annexed)
+    if bloc is not None:
+        members_before = ",".join(bloc.members)
+        bloc.members = [m for m in bloc.members if m != annexed]
+        if len(bloc.members) < 2:
+            world.blocs = [bl for bl in world.blocs if bl.id != bloc.id]
+            members_after = "dissolved"
+        else:
+            members_after = ",".join(bloc.members)
+        event.payload["detached_bloc_id"] = bloc.id
+        event.payload["detached_bloc_members_after"] = members_after
+        record_structural_effect(
+            event, target=bloc.id, metric="members", before=members_before, after=members_after
+        )
+
+    dropped = [p for p in world.tariffs if annexed in (p.importer, p.exporter)]
+    if dropped:
+        world.tariffs = [p for p in world.tariffs if annexed not in (p.importer, p.exporter)]
+        event.payload["tariffs_dropped"] = len(dropped)
+        for policy in dropped:
+            record_structural_effect(
+                event,
+                target=policy.importer,
+                metric=f"tariff:{policy.exporter}:{policy.commodity}",
+                before=policy.rate,
+                after=0.0,
+                delta=-policy.rate,
+                unit="rate",
+            )
+
+    lifted = [pair for pair in world.embargoes if annexed in pair]
+    if lifted:
+        world.embargoes = [pair for pair in world.embargoes if annexed not in pair]
+        event.payload["embargoes_lifted"] = len(lifted)
+        for a, b in lifted:
+            record_structural_effect(
+                event, target="embargo", metric=f"{a}:{b}", before="embargoed", after="absent"
+            )
+
+    transferred: list[str] = []
+    released: list[str] = []
+    for country in world.living_countries():
+        if country.status != CountryStatus.OCCUPIED or country.occupied_by != annexed:
+            continue
+        if country.code == annexer:
+            country.status = CountryStatus.ACTIVE
+            country.occupied_by = None
+            released.append(country.code)
+        else:
+            country.occupied_by = annexer
+            transferred.append(country.code)
+        record_structural_effect(
+            event,
+            target=country.code,
+            metric="occupied_by",
+            before=annexed,
+            after=country.occupied_by or "absent",
+        )
+    if transferred:
+        event.payload["occupations_transferred"] = ",".join(transferred)
+    if released:
+        event.payload["occupations_released"] = ",".join(released)
+
+
+def _replay_detach_annexed(world: World, event: Event, annexed: str, annexer: str) -> None:
+    """RNG-free counterpart to _detach_annexed, driven by what the live handler recorded."""
+    bloc_id = event.payload.get("detached_bloc_id")
+    members_after = event.payload.get("detached_bloc_members_after")
+    if isinstance(bloc_id, str) and isinstance(members_after, str):
+        if members_after == "dissolved":
+            world.blocs = [bl for bl in world.blocs if bl.id != bloc_id]
+        else:
+            for bloc in world.blocs:
+                if bloc.id == bloc_id:
+                    bloc.members = members_after.split(",")
+    if event.payload.get("tariffs_dropped"):
+        world.tariffs = [p for p in world.tariffs if annexed not in (p.importer, p.exporter)]
+    if event.payload.get("embargoes_lifted"):
+        world.embargoes = [pair for pair in world.embargoes if annexed not in pair]
+    transferred = event.payload.get("occupations_transferred")
+    if isinstance(transferred, str) and transferred:
+        for code in transferred.split(","):
+            world.country(code).occupied_by = annexer
+    released = event.payload.get("occupations_released")
+    if isinstance(released, str) and released:
+        for code in released.split(","):
+            country = world.country(code)
+            country.status = CountryStatus.ACTIVE
+            country.occupied_by = None
 
 
 def _end_occupation(world: World, rng: Rng, event: Event) -> None:
@@ -841,7 +946,6 @@ def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
     for country in world.living_countries():
         # 1. Calendar elections (~every 90 ticks via election_due_tick, §6.1/§3.2).
-        # (Path 4's occupier is not checked; see docs/progress.md.)
         if (
             country.election_due_tick is not None
             and world.tick >= country.election_due_tick
