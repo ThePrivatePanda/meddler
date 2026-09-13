@@ -108,22 +108,22 @@ t0763 [TEF] Tefeovia's universities warn of a coming decline in standards.
 t0764 [NUM] Numoania's exiled government calls the people to arms against Bolaania's occupation.
 t0770 [NUM] ANNEXATION: Bolaania folds Numoania's lands, people, and ledgers into its own.
 t0868 [GUC] A trade thaw: Guceonia repeals import duties aimed at Fotuustria.
-t0889 [VIS] Dust settles over Visaustria as the long dry withers the fields of the pine country.
-t0904 [GUC] Guceonia puts a new tariff wall around trade with Fotuustria.
-t0924 [GUC] Guceonia's assembly lines slow to a crawl — inputs simply aren't there.
-t0927 [FOT] The factory whistles of Bastfield fall silent; Fotuustria's industry has nothing to build with.
-t0933 [FOT] Soap, shoes and batteries vanish from the shops of Tarrstead.
-t0934 [GUC] Shelves empty across Guceonia as consumer goods run short.
-t0940 [GUC] Guceonia sheds jobs fast — the fen country feels it first.
+t0889 [VIS] DROUGHT in Visaustria: Ravmere rations water and the wells go deeper.
+t0904 [GUC] New import duties in Guceonia target Fotuustria; merchants recalculate every contract.
+t0924 [GUC] Output collapses at Guceonia's plants as the shortage finally bites.
+t0927 [FOT] Fotuustria's assembly lines slow to a crawl — inputs simply aren't there.
+t0933 [FOT] Fotuustria's shoppers queue for basics that used to sit in stock.
+t0934 [GUC] Guceonia rations consumer goods; President Tae De promises restocking.
+t0940 [GUC] Layoffs ripple through Guceonia; President Tae De faces angry crowds.
 t0943 [GUC] Guceonia dismantles its tariff wall against Fotuustria as relations improve.
 t0944 [GUC] New import duties in Guceonia target Fotuustria; merchants recalculate every contract.
-t0967 [FOT] Fotuustria's shoppers queue for basics that used to sit in stock.
-t1000 [BOL] Loi Tavi wins again in Bolaania, mostly by not losing.
+t0967 [FOT] Fotuustria rations consumer goods; President Lua Co promises restocking.
+t1000 [BOL] Bolaania re-elects Loi Tavi; the victory party in Oustwell runs late.
 t1000 [FOT] Lua Co survives the vote in Fotuustria; the opposition cries foul.
-t1000 [GUC] Tae De survives the vote in Guceonia; the opposition cries foul.
-t1000 [LIE] Guu Dazo wins again in Liesia, mostly by not losing.
+t1000 [GUC] Voters in Guceonia return Tae De for another term, with fewer cheers than last time.
+t1000 [LIE] Liesia re-elects Guu Dazo; the victory party in Korrridge runs late.
 t1000 [PIT] Pituadia votes for change; the count runs late and the government does not survive it.
-t1000 [PIT] Pituadia's new President, Meu Bevi, moves into the palace in Brennburg.
+t1000 [PIT] Meu Bevi is sworn in as President of Pituadia, promising a different road.
 t1000 [TEF] Tefeovia votes for change; the count runs late and the government does not survive it.
-t1000 [TEF] Sia Gezo is sworn in as President of Tefeovia, promising a different road.
-t1000 [VIS] Visaustria re-elects Geu Su; the victory party in Ravmere runs late.
+t1000 [TEF] Tefeovia's new President, Sia Gezo, moves into the palace in Oustley.
+t1000 [VIS] Geu Su wins again in Visaustria, mostly by not losing.
