@@ -1531,3 +1531,27 @@ and determinism/`world_at` property tests pass.
 is deliberate, and not reachable in ordinary play. God-mode intervention still accepts a
 departed country as a target. `_secede` counts departed countries against `max_countries`. The
 scan catches attribute reads only, so `getattr(world, "countries")` would get past it.
+
+## 2026-09-12 — The t362 stall was a query plan, not a lookback
+
+On seed 1337, tick 362 took 2.5–3.3 s against a ~40 ms neighbour. All of it was one call to
+`EventLog.recent_effect_events` from `tariffs._recent_relation_causes`, which passes no
+`start_tick`. It is the only such call in the run: t362 is the one tariff imposed for
+protection, and the walls at t376, t904 and t944 are retaliations, which cite the policy
+they answer and never search history.
+
+`flush()` accounted for 1 ms. The query started from `events`, so SQLite walked that table's
+primary key across all 42,532 events, probing each one for a matching effect, even though
+only 364 effect rows matched. Starting the same predicate from `event_effects` lets the
+covering `(target, metric)` index drive it. That version returns the same ids, and t362 now
+takes 37 ms. Narrowing the lookback was rejected because it would have changed which causes
+are found.
+
+A hard `INDEXED BY` was tried first and dropped. Measured at t1000 across real call shapes,
+it made two-metric threshold lookups about 30 times slower (0.3 ms to 11 ms). The unforced
+query is fastest or tied in all 16 cases, and every shape returned the same ids.
+
+`tests/unit/test_recent_effect_events.py` checks the results against a brute-force scan of
+the log across signatures, windows, directions and exclusions. It also counts SQLite VM steps
+for a full-history lookup; the old query fails that bound by a wide margin. The golden master
+is byte-identical.
