@@ -26,7 +26,7 @@ from meddler.engine.rng import Rng
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    for country in sorted(world.countries, key=lambda c: c.code):
+    for country in world.living_countries():
         total_tax = round_money(country.tax_rate * country.gdp_tick)
         if total_tax <= 0:
             continue

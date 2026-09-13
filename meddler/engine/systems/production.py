@@ -18,7 +18,7 @@ from meddler.engine.stats import apply_country_stat
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    for country in sorted(world.countries, key=lambda c: c.code):
+    for country in world.living_countries():
         new_gdp_tick = country.base_gdp * (0.5 + country.stability / 200) * country.innovation_mult
 
         ledger: list[LedgerEntry] = []
