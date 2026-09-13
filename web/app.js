@@ -113,7 +113,8 @@
     loadingReturn: null,
     scrubFrame: null,
     scrubClientX: null,
-    scrubQueuedTick: null
+    scrubQueuedTick: null,
+    speedQueued: null
   };
   const focusTL = () => (S.focusId === "A" ? "A" : "B");
   const activeTimelineId = () => (S.focusId === "A" ? "A" : S.focusId);
@@ -185,6 +186,11 @@
       S.scrubQueuedTick = null;
       requestWorldAt(tick);
     }
+    if (entry.key === "speed" && S.speedQueued != null) {
+      const tps = S.speedQueued;
+      S.speedQueued = null;
+      if (tps !== entry.command.tps) requestSpeed(tps);
+    }
     return entry;
   }
 
@@ -192,6 +198,7 @@
     if (!Object.keys(S.pendingRequests).length) return;
     S.pendingRequests = {};
     S.tracePending = null;
+    S.speedQueued = null;
     document.querySelectorAll("[data-pending-request]").forEach((node) => {
       node.disabled = false;
       node.classList.remove("is-pending");
@@ -3755,7 +3762,13 @@
     const command = S.running ? "pause" : "resume";
     sendCommand({ cmd: command }, command === "pause" ? "Pausing world…" : "Resuming world…", "running");
   }
+  // A speed chosen while another setSpeed is in flight is held, not dropped: the latest
+  // choice is sent once the pending one lands, so at most one is in flight and one waits.
   function requestSpeed(tps) {
+    if (pendingByKey("speed")) {
+      S.speedQueued = tps;
+      return;
+    }
     sendCommand({ cmd: "setSpeed", tps: tps }, "Setting speed to " + tps + "×…", "speed");
   }
   $("btnPause").addEventListener("click", requestRunningToggle);
