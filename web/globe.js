@@ -1108,20 +1108,40 @@
         });
       });
       candidates.sort((a, b) => b.priority - a.priority || (a.text < b.text ? -1 : 1));
+      // Region names are faint set dressing laid over the land, so besides other labels they
+      // also keep clear of capitals and of the lanes drawn this frame; with no clear spot
+      // near the landmass the name is left out rather than printed over the network.
+      const marks = [];
+      state.order.forEach((code) => {
+        const country = state.countries[code];
+        if (!country || !country.center) return;
+        const v = toVec(country.center[0] * D2R, country.center[1] * D2R);
+        projInto(v[0], v[1], v[2], 1);
+        if (P[2] > 0.03) marks.push(P[0], P[1]);
+      });
+      const show = layers();
+      const lanes = [];
+      if (show.sea) lanes.push.apply(lanes, state.routesSea);
+      if (show.air) lanes.push.apply(lanes, state.routesAir);
+      if (show.rail) lanes.push.apply(lanes, state.routesRail);
       const placed = [];
       const items = [];
       candidates.forEach((item) => {
         projInto(item.v[0], item.v[1], item.v[2], 1);
         if (P[2] < (item.kind === "region" ? 0.35 : 0.12)) return;
         const x = P[0], y = P[1];
-        const slots = item.kind === "region" ? [[0, 0]] : LABEL_SLOTS;
+        const region = item.kind === "region";
+        const slots = region ? REGION_SLOTS : LABEL_SLOTS;
         for (let s = 0; s < slots.length; s++) {
           const rect = labelRect(item, x, y, slots[s]);
+          const margin = region ? REGION_MARGIN : 0;
           let clear = true;
           for (let j = 0; j < placed.length && clear; j++) {
             const other = placed[j];
-            if (rect[0] < other[2] && rect[2] > other[0] && rect[1] < other[3] && rect[3] > other[1]) clear = false;
+            if (rect[0] - margin < other[2] && rect[2] + margin > other[0] &&
+              rect[1] - margin < other[3] && rect[3] + margin > other[1]) clear = false;
           }
+          if (region && clear) clear = regionSpotClear(rect, marks, lanes);
           if (clear) {
             placed.push(rect);
             item.slot = slots[s];
@@ -1132,10 +1152,53 @@
       });
       labels.items = items;
     }
+    // Region slots are offsets from the landmass centroid in label widths and label heights:
+    // the centroid first, then above and below it, then to either side.
+    const REGION_SLOTS = [[0, 0], [0, -1.4], [0, 1.4], [0, -2.8], [0, 2.8], [-0.6, 0], [0.6, 0], [0, -4.2], [0, 4.2]];
+    const REGION_MARGIN = 5;
+    function segmentHitsRect(x0, y0, x1, y1, rect) {
+      // Liang-Barsky clip of the segment against the rectangle.
+      const dx = x1 - x0, dy = y1 - y0;
+      const p = [-dx, dx, -dy, dy];
+      const q = [x0 - rect[0], rect[2] - x0, y0 - rect[1], rect[3] - y0];
+      let t0 = 0, t1 = 1;
+      for (let i = 0; i < 4; i++) {
+        if (p[i] === 0) {
+          if (q[i] < 0) return false;
+        } else {
+          const t = q[i] / p[i];
+          if (p[i] < 0) { if (t > t1) return false; if (t > t0) t0 = t; } else { if (t < t0) return false; if (t < t1) t1 = t; }
+        }
+      }
+      return true;
+    }
+    function regionSpotClear(rect, marks, lanes) {
+      // The whole name stays on the sphere, never out in space past the limb.
+      const inner = radius * 0.94;
+      for (let c = 0; c < 4; c++) {
+        const px = rect[c & 1 ? 2 : 0] - cx, py = rect[c & 2 ? 3 : 1] - cy;
+        if (px * px + py * py > inner * inner) return false;
+      }
+      for (let i = 0; i < marks.length; i += 2) {
+        if (marks[i] > rect[0] - REGION_MARGIN && marks[i] < rect[2] + REGION_MARGIN &&
+          marks[i + 1] > rect[1] - REGION_MARGIN && marks[i + 1] < rect[3] + REGION_MARGIN) return false;
+      }
+      for (let r = 0; r < lanes.length; r++) {
+        const segments = lanes[r].screenSegments;
+        if (!segments) continue;
+        for (let i = 0; i < segments.length; i += 4) {
+          if (segmentHitsRect(segments[i], segments[i + 1], segments[i + 2], segments[i + 3], rect)) return false;
+        }
+      }
+      return true;
+    }
     function labelRect(item, x, y, slot) {
       const pad = 3, gap = 7;
       let lx = x - item.width / 2, ly = y - item.height / 2;
-      if (item.kind === "country") {
+      if (item.kind === "region") {
+        lx += slot[0] * item.width;
+        ly += slot[1] * item.height;
+      } else if (item.kind === "country") {
         if (slot[1] < 0) ly = y - gap - item.height;
         else if (slot[1] > 0) ly = y + gap;
         else if (slot[0] > 0) lx = x + gap;
