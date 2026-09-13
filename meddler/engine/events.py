@@ -887,29 +887,34 @@ class EventLog:
         candidates: set[int] = set()
         for segment in self._all_segments():
             clauses = [
-                "e.branch=?",
-                "e.id>=?",
-                "e.id<?",
-                "x.target=?",
-                f"x.metric IN ({placeholders})",
+                f"x.target=? AND x.metric IN ({placeholders})",
+                "x.branch=?",
+                "x.id>=?",
+                "x.id<?",
             ]
             parameters: list[object] = [
+                target,
+                *metrics,
                 segment.branch,
                 segment.start,
                 segment.end,
-                target,
-                *metrics,
             ]
             if start_tick is not None:
                 clauses.append("e.tick>=?")
                 parameters.append(start_tick)
             if direction is not None:
                 clauses.append("x.delta>0" if direction > 0 else "x.delta<0")
+            # Written from event_effects so the planner starts at the (target, metric) index.
+            # Starting from events, it walked that table's primary key newest-first and probed
+            # each event for a matching effect: a lookup with no start_tick for a pair with few
+            # matches read the whole history, 3 s at t362 of seed 1337 for 364 matching rows.
+            # Same predicate and order, so the same ids come back. Not pinned with INDEXED BY:
+            # measured at t1000, forcing it made two-metric threshold lookups ~30x slower.
             rows = self._store.connection.execute(
-                "SELECT DISTINCT e.id FROM events e JOIN event_effects x "
-                "ON x.branch=e.branch AND x.id=e.id WHERE "
+                "SELECT DISTINCT x.id FROM event_effects x "
+                "JOIN events e ON e.branch=x.branch AND e.id=x.id WHERE "
                 + " AND ".join(clauses)
-                + " ORDER BY e.id DESC LIMIT ?",
+                + " ORDER BY x.id DESC LIMIT ?",
                 (*parameters, limit + len(exclude_ids)),
             )
             candidates.update(int(row["id"]) for row in rows)
