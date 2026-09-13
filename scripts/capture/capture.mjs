@@ -281,7 +281,8 @@ async function runTour(page, tour, opts) {
     // left the scrub view set after forking from the past; the split view is still shown.
     if (await waitForClockToMove(page, 4000)) {
       await page.keyboard.press("4");
-      await page.waitForSelector(visible("#deltaStrip"), { timeout: 45_000 }).catch(() => {
+      // The strip renders at once with placeholder text; wait for a real difference chip.
+      await page.waitForSelector("#deltaStrip:not([hidden]) .dchip", { timeout: 45_000 }).catch(() => {
         log("note: ΔWORLD strip not visible yet (timelines have not diverged)");
       });
       await page.keyboard.press("2");
@@ -290,6 +291,8 @@ async function runTour(page, tour, opts) {
     }
     // Let the speed change settle so its pending notice is not in the still.
     await page.waitForSelector("#activityIndicator", { state: "hidden", timeout: 30_000 });
+    // Keep the "Timeline forked" toast out of the still; toasts clear after about 4 seconds.
+    await page.waitForFunction(() => !document.querySelector("#toasts .toast"), null, { timeout: 8_000 });
   });
 
   // 6. Country dossier: full-history charts.
