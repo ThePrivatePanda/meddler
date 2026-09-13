@@ -136,9 +136,8 @@ golden master stable.
   links, their ticks and their recorded effects -- is exact either way.
 - The speed control is a request, not a guarantee. On a lightly loaded machine a tick of the
   reference world costs roughly 60-200 ms through tick 1000, inside the 250 ms that 4x allows --
-  but individual ticks run over, and one stalls for several seconds around tick 360 while the
-  engine searches history for the causes of a new tariff. On a busy machine every tick can cost
-  twice as much and 4x falls behind. When the clock falls behind nothing is lost or skipped; the
+  though individual ticks run over. On a busy machine every tick can cost twice as much and 4x
+  falls behind. When the clock falls behind nothing is lost or skipped; the
   simulation is identical, it just advances less often.
 - Territory shapes and satellite orbit paths on the globe are drawn for legibility. The
   positions, owners, counts and conditions behind them come from the engine.
