@@ -1484,9 +1484,50 @@ fixes whose absence was visible in the published artifact.
   nation settles. Any such mutation must ride a recorded delta, or `world_at` rebuilds the
   wrong target and a fork off that reconstruction diverges from prime. This is the named
   next step for the flatness work, and the measurement above is its justification.
-- Sixteen engine sites still simulate or select an annexed country (production, fiscal, bloc
-  diplomacy, path 4's occupier, tariffs, shipments, god-mode targets). None prints a headline on
-  seed 1337. Listed, with the fix recommended, in the section above.
+- Sixteen engine sites still simulated or selected an annexed country. Closed in the
+  living-countries section below, except shipments in transit and god-mode targets.
 - `REVOLUTION` is the one crisis kind that still never fires on either measured seed.
 - Organic `SECESSION` remains declarative. Routing it through the structural handler would
   grow the roster in ordinary play, which is a pacing decision rather than a wiring one.
+
+## 2026-09-12 — Living countries: one accessor instead of a guard per system
+
+`World.living_countries()` returns the countries still in the world, sorted by code, and every
+per-country system now iterates it. The full roster stays on `World.countries`, because replay,
+diffs, snapshots and the client's roster indices need departed countries too. What stops the
+next system from repeating the old bug is `tests/unit/test_living_countries.py`: it walks the
+engine's source and fails on any read of `.countries` outside a short allowlist of bookkeeping
+sites, each listed with its reason. A new system cannot iterate the dead without someone
+writing down why.
+
+Done in three steps, so each could be checked on its own:
+
+1. **Accessor, plus the sites that were already guarded or filtered to ACTIVE.** The golden
+   master passed unchanged, which shows the migration itself changed no behaviour.
+2. **Production and fiscal.** These minted GDP and collected tax for an annexed country every
+   tick, because annexation zeroes population but not `base_gdp`.
+3. **Annexation detaches the country.** It leaves its bloc (a bloc left with fewer than two
+   members dissolves), and every tariff and embargo naming it is dropped. A country it was
+   occupying passes to the annexer, which took its territory; if that country is the annexer
+   itself, the occupation ends. This closes the bloc-diplomacy, tariff and path-4 occupier
+   sites, which read those structures rather than the roster. Detachments are
+   payload-recorded and mirrored by the replay handler, so an ordinary annexation's payload is
+   unchanged.
+
+**Verified.** New tests: one per migrated system, plus per-detachment tests and a
+replay-parity test. Each was forced off to check it can fail:
+- Making the accessor return every country fails 17 tests.
+- Disabling the live detach fails 7 of 8 detach tests.
+- Disabling the replay detach fails the parity test.
+- Adding a raw roster loop to a system fails the scan.
+
+The golden was regenerated twice, under `PYTHONHASHSEED` 1 and 4242, and the runs were
+byte-identical. It still has 129 lines, and the first changed line is t889, after the t770
+annexation. Every change is to a headline's wording; tick, country and event kind are the same.
+Reading the file confirms Numoania's last line is its annexation. The golden, history-storage
+and determinism/`world_at` property tests pass.
+
+**Still open.** A shipment already in transit to or from an annexed country is delivered. That
+is deliberate, and not reachable in ordinary play. God-mode intervention still accepts a
+departed country as a target. `_secede` counts departed countries against `max_countries`. The
+scan catches attribute reads only, so `getattr(world, "countries")` would get past it.
