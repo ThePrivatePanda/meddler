@@ -839,14 +839,11 @@ for _organic, _intervention in (
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    for country in sorted(world.countries, key=lambda c: c.code):
+    for country in world.living_countries():
         # 1. Calendar elections (~every 90 ticks via election_due_tick, §6.1/§3.2).
-        # Elections and coups model a living government, so they need a country still in
-        # the world. Paths 3-5 need no guard on this country: each requires it to be ACTIVE
-        # or OCCUPIED. (Path 4's occupier is not checked; see docs/progress.md.)
+        # (Path 4's occupier is not checked; see docs/progress.md.)
         if (
-            country.in_world
-            and country.election_due_tick is not None
+            country.election_due_tick is not None
             and world.tick >= country.election_due_tick
         ):
             country.election_due_tick = world.tick + config.ELECTION_INTERVAL_TICKS
@@ -879,7 +876,7 @@ def run(world: World, rng: Rng) -> list[Event]:
 
         # 2. Coup rolls (§6.6.3: COUP's own registered consequences -- LEADER_CHANGE
         # p=1.0, CRACKDOWN p=0.6 -- are scheduled generically by emit_event below).
-        if country.in_world and rng.roll(_coup_probability(country)):
+        if rng.roll(_coup_probability(country)):
             coup = cascade.emit_event(
                 world,
                 rng,

@@ -107,8 +107,6 @@ def _target_need(country: Country, name: str) -> float:
     smaller population into a permanent false shortage. Re-derive demand every tick from
     the same per-capita table worldgen uses.
     """
-    if country.status in (CountryStatus.ANNEXED, CountryStatus.DISSOLVED):
-        return 0.0
     return country.population * config.COMMODITY_NEED_PER_CAPITA[name]
 
 
@@ -125,7 +123,7 @@ def _occupation_tribute(
     outgoing: dict[tuple[str, str], float] = {}
     incoming: dict[tuple[str, str], float] = {}
     share = config.OCCUPATION_EXTRACTIVE_TRIBUTE_SHARE
-    for occupied in sorted(world.countries, key=lambda c: c.code):
+    for occupied in world.living_countries():
         if occupied.status != CountryStatus.OCCUPIED or occupied.occupied_by is None:
             continue
         occupier = world.country(occupied.occupied_by)
@@ -145,7 +143,7 @@ def run(world: World, rng: Rng) -> list[Event]:
     # Two deterministic phases are required for M15 occupation tribute: all current-tick
     # outputs must exist before tribute flows are calculated, regardless of whether the
     # occupied country sorts before or after its occupier.
-    countries = sorted(world.countries, key=lambda c: c.code)
+    countries = world.living_countries()
     deltas_by_country: dict[str, list[StatDelta]] = {c.code: [] for c in countries}
 
     # Phase 1: population-linked need and current output/input consumption.
@@ -158,15 +156,6 @@ def run(world: World, rng: Rng) -> list[Event]:
                 apply_commodity_stat(
                     world, deltas, country.code, "need", name, target_need - current_need
                 )
-
-        if country.status in (CountryStatus.ANNEXED, CountryStatus.DISSOLVED):
-            for name in commodities.ORDER:
-                current_output = country.commodity_output[name]
-                if current_output != 0.0:
-                    apply_commodity_stat(
-                        world, deltas, country.code, "output", name, -current_output
-                    )
-            continue
 
         # Produced commodities + the grid-fed extractive (M14: energy). food/raw_materials
         # stay static after worldgen and move only by shocks -- recomputing them here would
@@ -184,8 +173,6 @@ def run(world: World, rng: Rng) -> list[Event]:
     # Phase 2: production/consumption balance plus M15 tribute. Stock remains a bounded
     # shock buffer; incoming tribute follows the same ceiling policy as domestic surplus.
     for country in countries:
-        if country.status in (CountryStatus.ANNEXED, CountryStatus.DISSOLVED):
-            continue
         deltas = deltas_by_country[country.code]
         for name in commodities.ORDER:
             balance = country.commodity_output[name] - country.commodity_need[name]

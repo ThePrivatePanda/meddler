@@ -40,7 +40,7 @@ def _distance_factor(a: Country, b: Country, coefficient: float) -> float:
 
 def _active_war_pairs(world: World) -> int:
     pairs: set[tuple[str, str]] = set()
-    for country in world.countries:
+    for country in world.living_countries():
         if country.status != CountryStatus.ACTIVE:
             continue
         for foe in country.at_war_with:
@@ -135,7 +135,7 @@ def _strikes(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
     active = {
         country.code: country
-        for country in world.countries
+        for country in world.living_countries()
         if country.status == CountryStatus.ACTIVE
     }
     for attacker_code in sorted(active):
@@ -193,7 +193,7 @@ def _resource_opportunity(
     excluded, and the hard angle gate prevents far-side resource wars.
     """
     candidates: list[tuple[float, Country, str, float]] = []
-    for target in sorted(world.countries, key=lambda c: c.code):
+    for target in world.living_countries():
         if target.code == aggressor.code or target.status != CountryStatus.ACTIVE:
             continue
         if target.code in aggressor.at_war_with or _same_bloc(world, aggressor.code, target.code):
@@ -226,7 +226,7 @@ def _resource_opportunity(
 def _resource_wars(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
     war_pairs = _active_war_pairs(world)
-    for aggressor in sorted(world.countries, key=lambda c: c.code):
+    for aggressor in world.living_countries():
         if aggressor.status != CountryStatus.ACTIVE:
             continue
         if war_pairs >= world.settings.max_wars_concurrent:

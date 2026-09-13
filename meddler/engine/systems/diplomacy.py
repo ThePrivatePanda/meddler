@@ -32,7 +32,7 @@ def _rel(world: World, a: str, b: str) -> float:
 
 
 def _active_codes(world: World) -> list[str]:
-    return sorted(c.code for c in world.countries if c.status == CountryStatus.ACTIVE)
+    return [c.code for c in world.living_countries() if c.status == CountryStatus.ACTIVE]
 
 
 def _shared_rival(world: World, a: str, b: str, codes: list[str]) -> bool:
@@ -57,7 +57,7 @@ def _bloc_strength(world: World, members: list[str]) -> float:
 
 def _active_war_pairs(world: World) -> int:
     seen: set[tuple[str, str]] = set()
-    for c in world.countries:
+    for c in world.living_countries():
         for foe in c.at_war_with:
             x, y = sorted((c.code, foe))
             seen.add((x, y))

@@ -119,11 +119,7 @@ def _country_from_json(text: str) -> Country:
 
 
 def _live_count(world: World) -> int:
-    return sum(
-        1
-        for c in world.countries
-        if c.status not in (CountryStatus.ANNEXED, CountryStatus.DISSOLVED)
-    )
+    return len(world.living_countries())
 
 
 def _choose_homeland(world: World, rng: Rng, parent: Country) -> tuple[Territory, int] | None:

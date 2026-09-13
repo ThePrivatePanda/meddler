@@ -24,16 +24,14 @@ from math import tanh
 
 from meddler.engine import config
 from meddler.engine.events import Event, StatDelta
-from meddler.engine.model import CountryStatus, World
+from meddler.engine.model import World
 from meddler.engine.rng import Rng
 from meddler.engine.stats import apply_country_stat
 
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    for country in sorted(world.countries, key=lambda c: c.code):
-        if country.status in (CountryStatus.ANNEXED, CountryStatus.DISSOLVED):
-            continue
+    for country in world.living_countries():
         # A country whose population has reached zero has a food need of zero too
         # (commodity_production._target_need scales need with population), and dividing by
         # it crashed the tick. Newly reachable: occupation drains population, and occupation

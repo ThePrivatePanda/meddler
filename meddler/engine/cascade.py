@@ -160,7 +160,7 @@ def _eval_one(world: World, cond: Condition, primary: str, secondary: str | None
         return holds(primary)
     if cond.target == "secondary":
         return False if secondary is None else holds(secondary)
-    codes = sorted(c.code for c in world.countries if c.in_world)
+    codes = [c.code for c in world.living_countries()]
     if cond.target == "any":
         return any(holds(c) for c in codes)
     return all(holds(c) for c in codes)  # "all"
@@ -212,16 +212,15 @@ def _resolve_target(
     if rule.target == "ally":
         allies = sorted(
             c.code
-            for c in world.countries
-            if c.in_world
-            and c.code != primary
+            for c in world.living_countries()
+            if c.code != primary
             and world.relations.get((min(primary, c.code), max(primary, c.code)), 0.0) > 0
         )
         if not allies:
             return None
         return allies[0], (primary if child_targets_two else None)
     if rule.target == "random":
-        others = sorted(c.code for c in world.countries if c.in_world and c.code != primary)
+        others = [c.code for c in world.living_countries() if c.code != primary]
         if not others:
             return None
         return rng.choice(others), (primary if child_targets_two else None)
@@ -234,8 +233,8 @@ def _resolve_target(
         candidates = sorted(
             (
                 (world.relations.get((min(primary, c.code), max(primary, c.code)), 0.0), c.code)
-                for c in world.countries
-                if c.in_world and c.code != primary
+                for c in world.living_countries()
+                if c.code != primary
             )
         )
         if not candidates:

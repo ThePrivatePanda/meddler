@@ -46,7 +46,7 @@ def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
     drama = world.settings.drama_multiplier
     # A country that has been annexed or dissolved is not a place a disaster can strike.
-    codes = sorted(c.code for c in world.countries if c.in_world)
+    codes = [c.code for c in world.living_countries()]
     for kind in sorted(EVENT_REGISTRY):
         spec = EVENT_REGISTRY[kind]
         if not spec.is_exogenous:

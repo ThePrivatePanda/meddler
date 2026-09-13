@@ -379,6 +379,19 @@ class World:
                 return c
         raise KeyError(code)
 
+    def living_countries(self) -> list[Country]:
+        """The countries still in the world, sorted by code: what a system iterates.
+
+        A country that has been annexed or dissolved stays in `countries` -- replay, diffs,
+        snapshots and the client's stable roster indices all need the full record -- but it
+        must not be simulated. Every per-country system reads this instead of `countries`,
+        and tests/unit/test_living_countries.py fails on any engine read of `countries`
+        outside a short allowlist of bookkeeping sites, so a new system cannot quietly
+        iterate the dead. The guards this replaces were added one system at a time, after
+        each omission had already shown up in the feed.
+        """
+        return sorted((c for c in self.countries if c.in_world), key=lambda c: c.code)
+
     def bloc_of(self, code: str) -> Bloc | None:
         for bloc in self.blocs:
             if code in bloc.members:

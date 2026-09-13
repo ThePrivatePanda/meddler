@@ -27,9 +27,7 @@ def _minted_this_tick(world: World, code: str) -> int:
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    for country in sorted(world.countries, key=lambda c: c.code):
-        if not country.in_world:
-            continue
+    for country in world.living_countries():
         money_supply = sum(country.pools.values())
         minted = _minted_this_tick(world, country.code)
         pct_minted = (minted / money_supply * 100) if money_supply > 0 else 0.0

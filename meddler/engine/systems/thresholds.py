@@ -111,9 +111,7 @@ def _check(
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    for country in sorted(world.countries, key=lambda c: c.code):
-        if not country.in_world:
-            continue
+    for country in world.living_countries():
         armed = country.armed
 
         inflation_event = _find_same_tick_event(world, country.code, "INFLATION_UPDATE")

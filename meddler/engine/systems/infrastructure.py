@@ -69,9 +69,7 @@ def _roll_failure(
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    for country in sorted(world.countries, key=lambda c: c.code):
-        if not country.in_world:
-            continue
+    for country in world.living_countries():
         maintenance_cost = assets.upkeep_cost(country)
 
         ledger: list[LedgerEntry] = []

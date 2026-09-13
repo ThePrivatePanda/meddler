@@ -130,7 +130,7 @@ def _remaining_capacity(
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    active = [c for c in world.countries if c.status == CountryStatus.ACTIVE]
+    active = [c for c in world.living_countries() if c.status == CountryStatus.ACTIVE]
     by_code = {c.code: c for c in active}
     # (country, carrier) -> commodity units this country can still load OR land this tick.
     budgets: dict[tuple[str, str], float] = {}

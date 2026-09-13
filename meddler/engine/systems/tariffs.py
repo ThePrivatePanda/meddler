@@ -191,9 +191,7 @@ def _retaliation(world: World, rng: Rng) -> list[Event]:
 
 def _new_tariffs(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    active = sorted(
-        country.code for country in world.countries if country.status == CountryStatus.ACTIVE
-    )
+    active = [c.code for c in world.living_countries() if c.status == CountryStatus.ACTIVE]
     for importer in active:
         for exporter in active:
             if importer == exporter or tariffs.same_bloc(world, importer, exporter):

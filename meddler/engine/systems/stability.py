@@ -71,9 +71,7 @@ def target_stability(country: Country) -> float:
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    for country in sorted(world.countries, key=lambda c: c.code):
-        if not country.in_world:
-            continue
+    for country in world.living_countries():
         # A food shortage is a STOCK condition (actually running low on food), NOT a flow
         # one. The old `grain_output < grain_need` flagged every structural food IMPORTER --
         # a country perfectly well fed through trade -- as permanently in shortage (fixed in
