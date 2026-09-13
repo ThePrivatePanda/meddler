@@ -134,10 +134,12 @@ golden master stable.
 - A traced headline is the event described in the world's present terms, not a quotation of the
   wording the feed carried at the time. The causal structure behind it -- the events, their
   links, their ticks and their recorded effects -- is exact either way.
-- The speed control is a request, not a guarantee. A tick costs more to compute as history
-  grows, so past a few hundred ticks the world runs slower than the button asks for -- 4x in
-  particular stops being achievable, and the clock quietly falls behind. Nothing is lost or
-  skipped when that happens; the simulation is the same, it just advances less often.
+- The speed control is a request, not a guarantee. On a lightly loaded machine a tick of the
+  reference world costs roughly 60-200 ms through tick 1000, inside the 250 ms that 4x allows --
+  but individual ticks run over, and one stalls for several seconds around tick 360 while the
+  engine searches history for the causes of a new tariff. On a busy machine every tick can cost
+  twice as much and 4x falls behind. When the clock falls behind nothing is lost or skipped; the
+  simulation is identical, it just advances less often.
 - Territory shapes and satellite orbit paths on the globe are drawn for legibility. The
   positions, owners, counts and conditions behind them come from the engine.
 
