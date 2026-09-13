@@ -5,7 +5,8 @@ client's stable roster indices all need the whole record. Guards against simulat
 added one system at a time, each after its omission had reached the feed, and a survey of
 the engine still found production minting GDP and fiscal collecting tax for annexed
 countries every tick. The accessor makes the safe iteration the default; the source scan
-below makes the unsafe one something a new system has to be allowlisted for.
+below makes the unsafe one something a new system has to be allowlisted for. It sees
+attribute reads only: `getattr(world, "countries")` would pass it unnoticed.
 
 ONE TEST PER SYSTEM, for the reason tests/unit/test_annexed_not_simulated.py gives: an
 aggregate test passes with most of the systems fixed.
