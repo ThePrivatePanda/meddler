@@ -1,129 +1,152 @@
-t0006 [NUM] Numoania scours the iron hill country for ore and timber that no longer arrive.
-t0017 [BOL] Bolaania and Pituadia sign a pact of friendship; old maps get nervous.
-t0017 [PIT] Trade and troops begin to flow between new allies Pituadia and Bolaania.
-t0022 [NUM] Output collapses at Numoania's plants as the shortage finally bites.
-t0029 [LIE] ALLIANCE: Liesia and Pituadia pledge mutual defence across Occidenta.
-t0029 [PIT] Trade and troops begin to flow between new allies Pituadia and Liesia.
-t0052 [FOT] The friendship between Fotuustria and Visaustria is fading into mere politeness.
-t0104 [GUC] The friendship between Guceonia and Visaustria is fading into mere politeness.
-t0105 [FOT] Fotuustria grows cautious as rumours of sickness spread faster than facts.
-t0113 [FOT] Fewer lorries on the roads out of Tarrstead: Fotuustria's economy is slowing.
-t0127 [LIE] President Guu Dazo makes education the centrepiece of Liesia's agenda.
-t0144 [LIE] Frost blankets Liesia's long peninsula; farmers count what's already lost.
-t0194 [VIS] Scandal engulfs Visaustria: missing funds trace to the President's inner circle.
-t0195 [GUC] President Tae De of Guceonia is heard using the word 'war' aloud.
-t0197 [BOL] Bolaania and Liesia still shake hands, but they no longer mean it as much.
-t0198 [GUC] WAR fever sweeps Guceonia; its generals are handed maps and asked to choose.
-t0199 [FOT] PEACE comes to Fotuustria; its generals finally stand down.
-t0199 [VIS] Unease spreads through Visaustria's green interior — the ground feels less solid.
-t0200 [GUC] The books thin in Guceonia: another crisis, another payout.
-t0201 [FOT] Relief spending drains Fotuustria's coffers; the auditors wince.
-t0279 [FOT] A back channel opens between Bastfield and Kolvfen; nobody admits it.
-t0288 [GUC] WAR over grain: Guceonia crosses into Fotuustria while the price is still rising.
-t0290 [FOT] Relief spending drains Fotuustria's coffers; the auditors wince.
-t0291 [GUC] The bill for the war lands in Kolvfen; Guceonia's treasury pays it, for now.
-t0293 [FOT] PEACE comes to Fotuustria; its generals finally stand down.
-t0304 [FOT] Production finds its feet again in Fotuustria.
-t0309 [GUC] REFUGEE CRISIS: Thornholm empties in a week as Guceonia's people take to the roads.
-t0362 [FOT] Fotuustria puts a new tariff wall around trade with Guceonia.
-t0369 [FOT] A back channel opens between Bastfield and Kolvfen; nobody admits it.
-t0376 [GUC] Guceonia puts a new tariff wall around trade with Fotuustria.
-t0385 [BOL] MANUFACTURING SLUMP grips Bolaania; President Sou Bo calls it temporary.
-t0390 [NUM] President Nuu Dazu floods Numoania's papers with a message of unity.
-t0446 [GUC] New protections take effect across Guceonia, cheered in the pine country.
-t0455 [GUC] Guceonia finds its footing again after a difficult stretch.
-t0465 [PIT] Dry winds carry fire across Pituadia's high steppe; crews are stretched thin.
-t0493 [VIS] A campaign of reassurance rolls out across Visaustria's broadcasts.
+t0005 [LIE] Liesia binds itself to Pituadia in a ceremony neither side calls temporary.
+t0005 [PIT] Trade and troops begin to flow between new allies Pituadia and Liesia.
+t0006 [NUM] Half-built towers stand idle in Amberdale; Numoania has run out of steel.
+t0006 [FOT] President Geu Pu orders tariffs on Tefeovia, promising protection at home.
+t0007 [BOL] WAR: Bolaania and Tefeovia end a long cold peace in a single afternoon.
+t0008 [TEF] Tefeovia's rainy-day fund meets a very rainy day.
+t0010 [TEF] New import duties in Tefeovia target Fotuustria; merchants recalculate every contract.
+t0011 [NUM] MANUFACTURING SLUMP: Numoania's plants go quiet after the materials shortage.
+t0011 [BOL] Bolaania's treasury bleeds as President Sou Bo funds a costly stopgap.
+t0017 [BOL] Crowds fill the squares of Oustwell; chants call for Sou Bo's resignation.
+t0019 [VIS] Curfews and chalk marks on doors — Visaustria fights a plague through the spring.
+t0020 [TEF] Bread riots erupt in Tefeovia as anger boils over — President Meo Bapu blames reckless spendthrifts.
+t0023 [NUM] MANUFACTURING SLUMP grips Numoania; President Nuu Dazu calls it temporary.
+t0029 [VIS] Visaustria's rainy-day fund meets a very rainy day.
+t0035 [NUM] Unemployment spikes across Numoania; queues form outside labour offices.
+t0036 [NUM] Numoania's harbourmasters post the losses: two convoys that never came.
+t0039 [BOL] Checkpoints no government ordered appear across the northern march; Bolaania teeters.
+t0042 [TEF] CIVIL WAR RISK grips Tefeovia; militias muster where the state has withdrawn.
+t0045 [BOL] An alliance is sworn between Bolaania and Pituadia — rivals take note.
+t0046 [PIT] Trade and troops begin to flow between new allies Pituadia and Bolaania.
+t0052 [FOT] Once close, Fotuustria and Visaustria now keep a careful distance.
+t0053 [BOL] Air-raid shelters fill in Oustwell as Tefeovia strikes Bolaania again.
+t0060 [BOL] Insurers stop writing policies for Bolaania; two cargo runs have gone down.
+t0072 [TEF] Raiders sink a convoy on the lanes to Tefeovia; insurers raise their rates.
+t0075 [PIT] WAR fever sweeps Pituadia; its generals are handed maps and asked to choose.
+t0076 [TEF] The bill for the war lands in Oustley; Tefeovia's treasury pays it, for now.
+t0077 [BOL] Bolaania loses the northern march: tax collectors are turned back at the line.
+t0079 [PIT] Relief spending drains Pituadia's coffers; the auditors wince.
+t0082 [TEF] Air-raid shelters fill in Oustley as Pituadia strikes Tefeovia again.
+t0085 [PIT] UNREST: Pituadia burns at the edges while Bue Luta points at reckless spendthrifts.
+t0088 [LIE] WAR fever sweeps Liesia; its generals are handed maps and asked to choose.
+t0090 [TEF] The bill for the war lands in Oustley; Tefeovia's treasury pays it, for now.
+t0092 [BOL] Explosions light up Sennness as Tefeovia opens another front from the sky.
+t0092 [LIE] Liesia's treasury bleeds as President Guu Dazo funds a costly stopgap.
+t0096 [GUC] Guceonia counts a cargo run that never came in; the lanes are no longer safe.
+t0097 [PIT] COUP in Pituadia: by morning the President is gone and generals hold the palace.
+t0098 [PIT] CIVIL WAR looms over Pituadia; rival factions arm in the river country.
+t0098 [TEF] The low valley answers to no one now. No map has changed, and both sides know it.
+t0098 [PIT] Pee So takes Brennburg after the coup; the old cabinet is under arrest.
+t0101 [PIT] REFUGEE CRISIS: Korran empties in a week as Pituadia's people take to the roads.
+t0102 [PIT] After the change of government, Brennburg tears up its programme and starts again.
+t0104 [GUC] Guceonia's envoy to Visaustria is recalled for 'consultations' and not replaced.
+t0108 [LIE] A convoy bound for Liesia is lost at sea; the war has found its shipping lanes.
+t0108 [TEF] Tefeovia's harbourmasters post the losses: two convoys that never came.
+t0112 [LIE] Liesia invests heavily in its schools and universities.
+t0115 [PIT] Pituadia and Tefeovia lay down arms; the long peninsula dares to hope.
+t0118 [LIE] Crowds fill the squares of Korrridge; chants call for Guu Dazo's resignation.
+t0118 [BOL] Guns fall silent: Bolaania and Tefeovia sign an armistice.
+t0120 [BOL] The war at sea reaches Bolaania: more convoys are missing than arriving.
+t0120 [TEF] OCCUPATION: Liesia takes Tefeovia, and the old government scatters.
+t0121 [PIT] Production finds its feet again in Pituadia.
+t0123 [LIE] Tanks in Korrridge: after the riots, Liesia's army decides it knows best.
+t0124 [BOL] Order returns to Bolaania's ledgers as output normalizes.
+t0124 [LIE] Sou Lese takes Korrridge after the coup; the old cabinet is under arrest.
+t0126 [LIE] MANUFACTURING SLUMP: Liesia's factories fall idle across the iron hill country.
+t0133 [TEF] A bridge in Narhaven closes 'until further notice' — Tefeovia is fraying.
+t0136 [LIE] Soap, shoes and batteries vanish from the shops of Korrridge.
+t0142 [BOL] A back channel opens between Oustwell and Oustley; nobody admits it.
+t0144 [LIE] A ship carrying machine parts to Liesia goes down in the war zone.
+t0144 [NUM] A convoy bound for Numoania is lost at sea; the war has found its shipping lanes.
+t0162 [LIE] Anger over the empty shelves brings Liesia into the streets; Korrridge smells of tear gas.
+t0183 [PIT] Pituadia and Tefeovia are no longer enemies, merely rivals; the border guns fall quiet.
+t0188 [LIE] Liesia and Tefeovia are no longer enemies, merely rivals; the border guns fall quiet.
+t0197 [PIT] Pituadia walks away from its alliance with Liesia; both capitals go quiet.
+t0198 [LIE] The broken alliance leaves Liesia and Pituadia eyeing each other warily.
+t0211 [BOL] Bolaania and Liesia still shake hands, but they no longer mean it as much.
+t0221 [BOL] MANUFACTURING SLUMP grips Bolaania; President Sou Bo calls it temporary.
+t0227 [NUM] The rains skip Numoania this autumn; farmers in the cape district plough dust.
+t0229 [TEF] ANNEXATION: Liesia folds Tefeovia's lands, people, and ledgers into its own.
+t0231 [BOL] Bolaania sheds jobs fast — the low valley feels it first.
+t0234 [NUM] Bread doubles overnight in Numoania — households feel the squeeze.
+t0235 [BOL] Bolaania and Pituadia sign a pact of friendship; old maps get nervous.
+t0236 [PIT] Pituadia's parliament ratifies the alliance with Bolaania by a comfortable margin.
+t0271 [PIT] DROUGHT grips Pituadia — the harvest fails across the high steppe.
+t0273 [LIE] Wildfire races through the iron hill country of Liesia; the sky over Fallmoor turns orange.
+t0274 [PIT] Pituadia's traders hoard as prices climb; queues form outside the granaries.
+t0275 [LIE] After the wildfires, Liesia's roads, lines and bridges are in pieces.
+t0279 [PIT] Pituadia's rainy-day fund meets a very rainy day.
+t0288 [LIE] Shelves empty across Liesia as consumer goods run short.
+t0289 [FOT] A whiff of corruption becomes a stench in Fotuustria; Geu Pu denies everything.
+t0294 [FOT] Fotuustria grows restless; trust in the government erodes by the day.
+t0299 [BOL] The pact between Bolaania and Pituadia lies in tatters.
+t0299 [PIT] Recriminations fly between Pituadia and Bolaania after the pact's collapse.
+t0301 [NUM] Numoania shivers through a freeze — fields and power lines both suffer.
+t0305 [NUM] POWER OUTAGE: Numoania goes dark from Amberdale to the grain belt.
+t0312 [LIE] Bread riots erupt in Liesia as anger boils over — President Sou Lese blames global supply shocks.
+t0361 [BOL] Bolaania's envoy to Liesia is recalled for 'consultations' and not replaced.
+t0363 [LIE] PLAGUE: Liesia quarantines Fallmoor as the count of the fallen climbs.
+t0383 [LIE] Fields and factories idle in Liesia for want of labour.
+t0389 [LIE] Liesia's economy cools — factories run short shifts across the iron hill country.
+t0390 [LIE] Once close, Liesia and Pituadia now keep a careful distance.
+t0479 [BOL] Dust settles over Bolaania as the long dry withers the fields of the amber coast.
+t0481 [BOL] Prices jump in Bolaania after the drought; the market in Istrwick sells out by noon.
+t0493 [BOL] Granaries empty across Bolaania; 20 days of grain stand between it and hunger.
 t0500 [BOL] Bolaania votes for change; the count runs late and the government does not survive it.
-t0500 [BOL] Diu Pu is sworn in as President of Bolaania, promising a different road.
-t0500 [FOT] Fotuustria votes for change; the count runs late and the government does not survive it.
-t0500 [FOT] Fotuustria's new President, Lua Co, moves into the palace in Bastfield.
-t0500 [GUC] Voters in Guceonia return Tae De for another term, with fewer cheers than last time.
-t0500 [LIE] Voters in Liesia return Guu Dazo for another term, with fewer cheers than last time.
+t0500 [BOL] Sae Basu is sworn in as President of Bolaania, promising a different road.
+t0500 [FOT] Turnout is low and the result unsurprising — Fotuustria keeps Geu Pu.
+t0500 [GUC] Tae De survives the vote in Guceonia; the opposition cries foul.
+t0500 [LIE] Liesia re-elects Sou Lese; the victory party in Korrridge runs late.
 t0500 [NUM] Voters in Numoania return Nuu Dazu for another term, with fewer cheers than last time.
 t0500 [PIT] Pituadia votes for change; the count runs late and the government does not survive it.
-t0500 [PIT] Pituadia's new President, Vea Da, moves into the palace in Brennburg.
-t0500 [TEF] Voters in Tefeovia return Meo Bapu for another term, with fewer cheers than last time.
-t0500 [VIS] Turnout is low and the result unsurprising — Visaustria keeps Geu Su.
-t0502 [FOT] Fotuustria quietly changes course; the pine country adjusts.
-t0502 [PIT] A shift in policy from President Vea Da reshapes Pituadia's priorities.
-t0503 [BOL] Bolaania quietly changes course; the northern march adjusts.
-t0508 [FOT] A cautious thaw between Fotuustria and Guceonia — nobody calls it friendship yet.
-t0529 [FOT] A wildfire breaks out in Fotuustria; evacuation orders reach Tarrstead by nightfall.
-t0531 [FOT] Fotuustria's infrastructure buckles — power flickers and the trains stop.
-t0547 [PIT] Frost blankets Pituadia's river country; farmers count what's already lost.
-t0548 [PIT] Pituadia's grain reserves take a hit; officials quietly recalculate the winter.
-t0555 [PIT] Bread doubles overnight in Pituadia — households feel the squeeze.
-t0558 [PIT] Confidence wobbles: Pituadia's Peso sheds value against the veri.
-t0581 [BOL] WAR erupts between Bolaania and Numoania; markets convulse across Australis.
-t0582 [NUM] President Nuu Dazu signs off another relief package; the finance ministry stops sleeping.
-t0584 [BOL] The books thin in Bolaania: another crisis, another payout.
-t0585 [NUM] Air-raid shelters fill in Amberdale as Bolaania strikes Numoania again.
-t0591 [BOL] UNREST in Bolaania: barricades go up in Istrwick and do not come down.
-t0593 [LIE] WAR: Liesia and Numoania end a long cold peace in a single afternoon.
-t0596 [BOL] COUP in Bolaania — officers seize the broadcast tower in Oustwell before dawn.
-t0596 [LIE] President Guu Dazo signs off another relief package; the finance ministry stops sleeping.
-t0597 [NUM] Relief spending drains Numoania's coffers; the auditors wince.
-t0597 [BOL] Curfews descend on Bolaania: the government answers protest with police lines.
-t0599 [PIT] WAR fever sweeps Pituadia; its generals are handed maps and asked to choose.
-t0600 [FOT] The docks at Carrwick wait for convoys that are not coming; Fotuustria has lost two.
-t0600 [NUM] Numoania's treasury bleeds as President Nuu Dazu funds a costly stopgap.
-t0601 [PIT] Pituadia spends money it does not have cleaning up after the war.
-t0606 [BOL] The centre cannot hold in Bolaania — talk in Oustwell turns to open revolt.
-t0607 [NUM] STRIKE: Bolaania hits Numoania; sirens rise across the grain belt.
-t0608 [NUM] Crowds fill the squares of Amberdale; chants call for Nuu Dazu's resignation.
-t0609 [PIT] Strikes, marches, broken windows — Pituadia's autumn of discontent has begun.
-t0620 [LIE] REFUGEE CRISIS: columns stream out of Liesia toward any open border.
-t0622 [LIE] Crowds fill the squares of Korrridge; chants call for Guu Dazo's resignation.
-t0624 [FOT] The sea lanes to Fotuustria turn deadly: two cargo runs lost of late.
-t0626 [LIE] Liesia's chip plants in Korrridge stand idle for want of parts.
-t0629 [NUM] CIVIL WAR RISK grips Numoania; militias muster where the state has withdrawn.
-t0631 [PIT] CIVIL WAR RISK: Holldale flies a flag Brennburg does not recognise.
-t0640 [LIE] Checkpoints no government ordered appear across the cape district; Liesia teeters.
-t0643 [NUM] STRIKE: Pituadia hits Numoania; sirens rise across the cape district.
-t0646 [LIE] Liesia's assembly lines slow to a crawl — inputs simply aren't there.
-t0648 [LIE] Liesia loses four convoys to the war at sea, most of them carrying machine parts.
-t0648 [LIE] UNREST in Liesia: the anger over the refugee exodus reaches the gates of the palace.
-t0649 [BOL] Negotiators emerge blinking into the daylight — Bolaania and Numoania are at peace.
-t0656 [BOL] WAR: Bolaania and Numoania end a long cold peace in a single afternoon.
-t0657 [LIE] Numoania's bombers reach Liesia's cape district; the depots there burn through the night.
-t0657 [LIE] Soap, shoes and batteries vanish from the shops of Fallmoor.
-t0658 [BOL] Bolaania's rainy-day fund meets a very rainy day.
-t0660 [NUM] Numoania spends money it does not have cleaning up after the war.
-t0667 [NUM] OCCUPATION BEGINS — Bolaania's troops garrison Numoania as President Nuu Dazu flees.
-t0672 [LIE] Liesia loses the long peninsula: tax collectors are turned back at the line.
-t0677 [NUM] Repair crews swarm Numoania as roads and grids give way.
-t0685 [BOL] COUP: the state broadcaster in Oustwell plays martial music on a loop.
-t0686 [BOL] Loi Tavi takes Oustwell after the coup; the old cabinet is under arrest.
-t0689 [BOL] Bolaania quietly changes course; the northern march adjusts.
-t0704 [LIE] BOOM AND BUST: Liesia's bubble inflates, wobbles, and pops within the winter.
-t0719 [LIE] The worst of the feud between Liesia and Numoania burns out.
-t0721 [NUM] A back channel opens between Amberdale and Brennburg; nobody admits it.
-t0729 [TEF] Tefeovia's brightest keep leaving for opportunities elsewhere.
-t0740 [NUM] Numoania's exiled government calls the people to arms against Bolaania's occupation.
-t0744 [BOL] The worst of the feud between Bolaania and Numoania burns out.
-t0752 [LIE] RECESSION grips Liesia — shopfronts empty across the iron hill country.
-t0761 [LIE] Liesia spends money it does not have cleaning up after the recession.
-t0763 [TEF] Tefeovia's universities warn of a coming decline in standards.
-t0764 [NUM] Numoania's exiled government calls the people to arms against Bolaania's occupation.
-t0770 [NUM] ANNEXATION: Bolaania folds Numoania's lands, people, and ledgers into its own.
-t0868 [GUC] A trade thaw: Guceonia repeals import duties aimed at Fotuustria.
-t0889 [VIS] DROUGHT in Visaustria: Ravmere rations water and the wells go deeper.
-t0904 [GUC] New import duties in Guceonia target Fotuustria; merchants recalculate every contract.
-t0924 [GUC] Output collapses at Guceonia's plants as the shortage finally bites.
-t0927 [FOT] Fotuustria's assembly lines slow to a crawl — inputs simply aren't there.
-t0933 [FOT] Fotuustria's shoppers queue for basics that used to sit in stock.
-t0934 [GUC] Guceonia rations consumer goods; President Tae De promises restocking.
-t0940 [GUC] Layoffs ripple through Guceonia; President Tae De faces angry crowds.
-t0943 [GUC] Guceonia dismantles its tariff wall against Fotuustria as relations improve.
-t0944 [GUC] New import duties in Guceonia target Fotuustria; merchants recalculate every contract.
-t0967 [FOT] Fotuustria rations consumer goods; President Lua Co promises restocking.
-t1000 [BOL] Bolaania re-elects Loi Tavi; the victory party in Oustwell runs late.
-t1000 [FOT] Lua Co survives the vote in Fotuustria; the opposition cries foul.
+t0500 [PIT] Pituadia's new President, Lia Gi, moves into the palace in Brennburg.
+t0500 [VIS] Visaustria sticks with Geu Su; the opposition blames the summer weather.
+t0502 [PIT] Pituadia renounces its treaty with Liesia — Australis recalculates its loyalties.
+t0502 [LIE] Liesia and Pituadia expel each other's military attachés.
+t0503 [BOL] New rules take hold in Bolaania as President Sae Basu tries a different tack.
+t0503 [PIT] After the change of government, Brennburg tears up its programme and starts again.
+t0606 [BOL] Ash falls like snow on Oustwell as wildfires burn through Bolaania's amber coast.
+t0609 [BOL] A blow to Bolaania's harvest leaves granaries thinner than planned.
+t0617 [BOL] Bread doubles overnight in Bolaania — households feel the squeeze.
+t0617 [BOL] FAMINE WARNING: the low valley of Bolaania tightens its belt as the stores run low.
+t0621 [BOL] Bolaania spends money it does not have cleaning up after the price shock.
+t0623 [BOL] A run on the Lira in Bolaania; President Sae Basu promises calm.
+t0634 [FOT] Frost blankets Fotuustria's pine country; farmers count what's already lost.
+t0637 [FOT] Losses mount in Fotuustria's fields; the copper basin's stockpiles shrink.
+t0640 [FOT] Fotuustria's traders hoard as prices climb; queues form outside the granaries.
+t0643 [FOT] Fotuustria spends money it does not have cleaning up after the price shock.
+t0645 [BOL] Bread riots erupt in Bolaania as anger boils over — President Sae Basu blames envious rivals.
+t0647 [FOT] Confidence wobbles: Fotuustria's Dinar sheds value against the veri.
+t0654 [FOT] Ration cards return to Bastfield: Fotuustria is down to its last sacks of grain.
+t0655 [BOL] Grief settles over Bolaania as the population falls hard.
+t0677 [FOT] Some 300,000 gone: after the grain warnings, empty houses line the copper basin of Fotuustria.
+t0680 [FOT] Fotuustria reels as Geu Pu's dealings hit the front pages.
+t0685 [BOL] The lowlands of Bolaania flood; families in Oustwell move what they can to higher ground.
+t0685 [FOT] Cracks show in Fotuustria's calm as confidence slips.
+t0686 [BOL] A blow to Bolaania's harvest leaves granaries thinner than planned.
+t0687 [BOL] Ration cards return to Oustwell: Bolaania is down to its last sacks of grain.
+t0687 [BOL] The lights dim over Bolaania's low valley; ageing works finally fail.
+t0689 [BOL] Price boards in Sennness are rewritten twice a day as Bolaania's staples soar.
+t0699 [BOL] Ration cards return to Oustwell: Bolaania is down to its last sacks of grain.
+t0705 [BOL] The Lira loses its grip on prices; shoppers in Oustwell buy before it gets worse.
+t0710 [VIS] Visaustria leaps ahead; rivals scramble to copy what its labs just built.
+t0712 [BOL] Bolaania loses some 300,000; the amber coast will not look the same again.
+t0722 [VIS] Visaustria's economy surges; exporters can't fill orders fast enough.
+t0735 [LIE] A whiff of corruption becomes a stench in Liesia; Sou Lese denies everything.
+t0738 [LIE] A lab in Fallmoor cracks it; Liesia's factories retool within the spring.
+t0747 [LIE] Boom times in Liesia — output climbs and hiring follows.
+t0758 [BOL] The centre cannot hold in Bolaania — talk in Oustwell turns to open revolt.
+t0767 [BOL] The army moves against President Sae Basu; Bolaania holds its breath.
+t0768 [BOL] Deo Lica is named President of Bolaania by the men with the guns.
+t0771 [BOL] After the change of government, Oustwell tears up its programme and starts again.
+t0844 [VIS] Dust settles over Visaustria as the long dry withers the fields of the old heartland.
+t0851 [VIS] Price boards in Brennford are rewritten twice a day as Visaustria's staples soar.
+t0860 [VIS] A run on the Krona in Visaustria; President Geu Su promises calm.
+t1000 [BOL] Bolaania sticks with Deo Lica; the opposition blames the autumn weather.
+t1000 [FOT] Geu Pu survives the vote in Fotuustria; the opposition cries foul.
 t1000 [GUC] Voters in Guceonia return Tae De for another term, with fewer cheers than last time.
-t1000 [LIE] Liesia re-elects Guu Dazo; the victory party in Korrridge runs late.
+t1000 [LIE] Sou Lese survives the vote in Liesia; the opposition cries foul.
+t1000 [NUM] Numoania re-elects Nuu Dazu; the victory party in Amberdale runs late.
 t1000 [PIT] Pituadia votes for change; the count runs late and the government does not survive it.
-t1000 [PIT] Meu Bevi is sworn in as President of Pituadia, promising a different road.
-t1000 [TEF] Tefeovia votes for change; the count runs late and the government does not survive it.
-t1000 [TEF] Tefeovia's new President, Sia Gezo, moves into the palace in Oustley.
+t1000 [PIT] Goe No is sworn in as President of Pituadia, promising a different road.
 t1000 [VIS] Geu Su wins again in Visaustria, mostly by not losing.
