@@ -16,6 +16,11 @@ bridge protocol may still change between minor releases.
 - A departed country no longer holds one of the `max_countries` slots a secession needs.
 - Assassinations now happen on their own in unstable countries; before, they could only follow
   an occupation's resistance movement and almost never fired.
+- Revolutions can follow political collapse, not only famine: a civil-war risk can overturn the
+  order if the country is still in unrest when it comes due.
+- A change of ruler moves where a country's stability settles, by the new leader's character,
+  while pulling back toward the nation's own founding temperament, so countries wander without
+  losing who they are. A revolution resets the temperament halfway toward that founding draw.
 - A drought or locust swarm takes at most a quarter of a country's food output. A fixed-size
   crop shock used to erase a small producer's farms for good, leaving it to starve for the rest
   of the run.
