@@ -1693,3 +1693,69 @@ feel call, and the constant is `CONVOY_REPORT_MAX_WAIT_TICKS`.
 `test_a_lone_sinking_is_reported_once_it_has_waited` and
 `test_every_sinking_is_reported_exactly_once_and_on_time` both fail with the wait rule
 disabled, and `test_a_single_lost_convoy_reads_in_the_singular` covers the new lines.
+
+## 2026-09-13 — Revolutions follow collapse; regime change moves temperament
+
+### Why REVOLUTION did not fire
+
+REVOLUTION had one parent in the registry: FAMINE (p=0.4), a hysteresis threshold on
+`grain_stock <= 0` that fires once per starvation episode. The gate is not a proportional
+approach that never arrives -- stock is floored at 0 and does reach it. The problem is that
+food is the only road. Trade relief engages at 15 days of need (`RELIEF_CRITICAL_DAYS`),
+above both famine lines, so a world whose trade works never starves. Seed 1337 over 1500
+ticks: lowest food anywhere 14.9 days, 0 FAMINE, 0 REVOLUTION scheduled. Seed 7 starves (TAB,
+TEA and LOF at zero food output for most of the run): 3 FAMINE, 1 REVOLUTION by t797. So
+"never fires on either seed" was false for seed 7 at HEAD; on 1337 it was structurally
+unreachable, because political collapse (stability under 15, CIVIL_WAR_RISK) could split a
+country but never overturn its order.
+
+Fix: CIVIL_WAR_RISK schedules REVOLUTION (base_p 0.3, so 0.21 at the threshold bridge's depth
+1), and REVOLUTION carries a fire-time condition, stability below the unrest line, so a
+country that recovered during the delay does not revolt. This extends PROPOSAL §6.6.3.
+
+### Temperament moves
+
+`base_stability` changed only through god edits. Now every LEADER_CHANGE (lost election,
+coup, revolution, assassination) shifts it by the new leader's traits, ±3 per good/bad trait
+(two of each out of eight, so a random successor is zero in expectation), and a REVOLUTION
+moves it halfway toward the middle of the genesis range. The event is frozen before
+structural handlers run, so the realised post-clamp shift is written to
+`payload["base_stability_shift"]` and the effects index and replayed RNG-free, the same
+contract as strikes and the leader swap. `tests/unit/test_regime_temperament.py` checks
+`world_at` against the live value at every tick across snapshot boundaries after a revolution
+and its leader change, then runs a fork against prime for 20 ticks. Disabling the replay
+handler fails it (t18 rebuilt 47.04 against a live 44.04). All five tests in the file fail on
+the pre-change tree.
+
+### Measured, and what the measurement cannot say
+
+`measure.py` (a scratch harness) on `git archive` trees of d5d362b and d799a94, seeds 1337 and
+7, 1500 ticks, default settings:
+
+| | 1337 before | 1337 after | 7 before | 7 after |
+|---|---|---|---|---|
+| second-half sd, min / median | 0.62 / 1.57 | 0.49 / 8.45 | 0.00 / 0.11 | 0.04 / 3.52 |
+| COUP / ELECTION / REVOLUTION | 2 / 22 / 0 | 4 / 24 / 2 | 6 / 24 / 1 | 20 / 24 / 5 |
+| LEADER_CHANGE / UNREST / CIVIL_WAR_RISK | 9 / 5 / 4 | 13 / 8 / 6 | 12 / 11 / 3 | 32 / 15 / 6 |
+| severity>=2 events | 35 | 55 | 76 | 113 |
+
+Median motion rose several-fold and base_stability moved both ways on both seeds. Crises rose
+too, and the counts cannot be attributed. Two ablations on the same commit -- shifts off, and
+the new edge at p=0 -- gave 71 and 72 severity>=2 events on 1337 and 153 and 145 on seed 7:
+every variant is louder than the committed version, and one with no temperament shift still
+shows 19 coups on seed 7. A 1500-tick seed is chaotic under any change to a stability
+trajectory, so these are facts about four runs, not about the mechanism. Whether this change
+raises the crisis rate needs a multi-seed comparison against an equally perturbed baseline.
+
+### Still open
+
+- The seed-7 country with sd 0.00 (TEA) is not a temperament problem. It sits clamped at
+  stability 0 with no war: zero food output, need 0.88, inflation 17%, for 1,378 ticks, and
+  shortage plus inflation penalties outrun reversion to any target. It still reads 0.04. Three
+  seed-7 countries starve permanently with relief never landing; that is production/relief.
+- Seed 7's coups concentrate there: a country pinned at 0 rolls every tick, and a corrupt or
+  warhawk successor lifts the roll from 0.0014 to 0.0114, so each leader change can re-arm it.
+- The trait walk has no restoring force; over very long runs base_stability wanders toward the
+  clamps, with only REVOLUTION pulling back.
+- The golden master drifts from t0584 on this branch and was not regenerated; the two-run
+  determinism check passes, and `test_history_storage.py` still passes as pinned.
