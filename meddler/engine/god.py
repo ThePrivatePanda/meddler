@@ -43,6 +43,19 @@ class InterventionError(ValueError):
     """Raised when god mode is asked for something it cannot or must not do."""
 
 
+def _require_in_world(world: World, *codes: str | None) -> None:
+    """Refuse a target that has been annexed or dissolved.
+
+    The client roster already hides such countries, but a stale client or a hand-written
+    command can still name one, and every system has stopped simulating it: an act aimed
+    at it would record a headline about a nation that no longer exists. Checked against
+    the world being acted on, so a fork taken before the annexation may still target it.
+    An unknown code is left to `world.country`'s KeyError, as before."""
+    for code in codes:
+        if code is not None and not world.country(code).in_world:
+            raise InterventionError(f"{code} is no longer in the world")
+
+
 def intervene(
     world: World,
     rng: Rng,
@@ -56,8 +69,8 @@ def intervene(
     pool_transfers and schedules its consequences exactly like any other event (§4.7).
 
     Raises InterventionError if: god mode is disabled (observer_only), `kind` isn't a
-    registered intervention, a target is in protected_countries, or a two-target kind is
-    missing its second target.
+    registered intervention, a target is in protected_countries or has left the world
+    (annexed or dissolved), or a two-target kind is missing its second target.
 
     INTERVENE_CHAOS resolves to a random registered EXOGENOUS spec, fired as a root event
     in `country`'s place, still flagged is_intervention=True (documented at registration
@@ -72,6 +85,7 @@ def intervene(
     for code in (country, country2):
         if code is not None and code in world.settings.protected_countries:
             raise InterventionError(f"{code} is protected from intervention targeting")
+    _require_in_world(world, country, country2)
 
     if not world_rule_allows(kind, world.settings):
         rule = WORLD_RULE_GATES[kind]
@@ -124,6 +138,7 @@ def god_edit(world: World, code: str, field: str, value: float) -> Event | None:
     (see module docstring)."""
     if field not in _EDITABLE_FIELDS:
         raise InterventionError(f"not an editable field: {field}")
+    _require_in_world(world, code)
     country = world.country(code)
     silent = world.settings.silent_god_edits
 
@@ -211,6 +226,7 @@ def god_relation(world: World, code_a: str, code_b: str, value: float) -> Event 
     `payload["ended_war"]` and rebuilt by `_replay_god_relation`, so world_at does not
     resurrect a war this edit ended. Silent mode (see module docstring) skips the
     event/StatDelta record but still applies the relation change and the war-clearing."""
+    _require_in_world(world, code_a, code_b)
     a_code, b_code = sorted((code_a, code_b))
     key = (a_code, b_code)
     before = world.relations.get(key, 0.0)
@@ -272,6 +288,7 @@ def god_peace(world: World, rng: Rng, code: str) -> Event | None:
     generic handler) entirely, so the war-clearing is duplicated here ONLY for that
     branch -- the "paper trail disabled" exception, module docstring; PEACE's own stat
     bump is tied to firing the event, so silent mode skips it too, not just the record."""
+    _require_in_world(world, code)
     if world.settings.silent_god_edits:
         country = world.country(code)
         for foe_code in list(country.at_war_with):

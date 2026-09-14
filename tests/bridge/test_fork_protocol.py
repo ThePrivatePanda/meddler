@@ -22,6 +22,7 @@ from websockets.asyncio.server import serve
 from meddler.bridge.runtime import LocalRuntime
 from meddler.bridge.server import ServerRuntime
 from meddler.engine import annals as engine_annals
+from meddler.engine.model import CountryStatus
 
 SEED = 42
 _END = "__end__"
@@ -141,6 +142,26 @@ def test_intervene_without_at_tick_forks_at_prime_present() -> None:
     started, status = _run(scenario)
     assert started["tick"] == 3
     assert status["focus"] == started["id"]
+
+
+def test_intervene_on_a_country_that_has_left_the_world_is_refused_without_a_fork() -> None:
+    async def scenario(client: Client) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
+        code = _first_country(client)
+        await _steps(client, 3)
+        prime = client.session.multiverse.prime.world
+        prime.country(code).status = CountryStatus.ANNEXED
+        length = len(prime.log)
+        replies = await client.request(cmd="intervene", kind="INTERVENE_DROUGHT", country=code)
+        edit = await client.request(cmd="godEdit", code=code, field="stability", value=3.0)
+        forks = len(client.session.multiverse.forks)
+        return replies, edit, forks if len(prime.log) == length else -1
+
+    replies, edit, forks = _run(scenario)
+    assert [m["type"] for m in replies] == ["toast"]
+    assert replies[0]["tone"] == "warn"
+    assert "no longer in the world" in replies[0]["text"]
+    assert [m["type"] for m in edit] == ["toast"]
+    assert forks == 0
 
 
 def test_intervene_without_at_tick_while_scrubbed_forks_at_the_viewed_tick() -> None:

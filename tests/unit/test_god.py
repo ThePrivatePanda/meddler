@@ -6,7 +6,7 @@ import pytest
 
 from meddler.engine import config, god, tickloop  # noqa: F401 -- populates EVENT_REGISTRY
 from meddler.engine.systems import stability
-from meddler.engine.model import WorldSettings
+from meddler.engine.model import CountryStatus, WorldSettings
 from meddler.engine.rng import Rng
 from meddler.engine.timeline import Multiverse, Timeline
 from meddler.engine.trace import trace
@@ -100,6 +100,49 @@ def test_intervene_chaos_resolves_to_a_registered_exogenous_kind():
     assert event.is_intervention is True
     assert EVENT_REGISTRY[event.kind].is_exogenous
     assert event.payload["chaos_resolved_to"] == event.kind
+
+
+def _timeline_with_an_annexed_country() -> tuple[Timeline, str, str]:
+    tl = _two_country_timeline()
+    gone, alive = tl.world.countries
+    gone.status = CountryStatus.ANNEXED
+    return tl, gone.code, alive.code
+
+
+@pytest.mark.parametrize(
+    ("kind", "annexed_is_second"),
+    [
+        ("INTERVENE_DROUGHT", False),
+        ("INTERVENE_CHAOS", False),
+        ("INTERVENE_WAR", False),
+        ("INTERVENE_WAR", True),
+    ],
+)
+def test_intervene_refuses_a_country_that_has_left_the_world(kind, annexed_is_second):
+    tl, gone, alive = _timeline_with_an_annexed_country()
+    first, second = (alive, gone) if annexed_is_second else (gone, alive)
+    length = len(tl.world.log)
+    with pytest.raises(god.InterventionError, match="no longer in the world"):
+        god.intervene(tl.world, tl.rng, kind=kind, country=first, country2=second)
+    assert len(tl.world.log) == length
+
+
+@pytest.mark.parametrize("silent", [False, True])
+def test_direct_god_edits_refuse_a_country_that_has_left_the_world(silent):
+    tl, gone, alive = _timeline_with_an_annexed_country()
+    tl.world.settings.silent_god_edits = silent
+    stability = tl.world.country(gone).stability
+    relations = dict(tl.world.relations)
+    length = len(tl.world.log)
+    with pytest.raises(god.InterventionError, match="no longer in the world"):
+        god.god_edit(tl.world, gone, "stability", 3.0)
+    with pytest.raises(god.InterventionError, match="no longer in the world"):
+        god.god_relation(tl.world, alive, gone, 50.0)
+    with pytest.raises(god.InterventionError, match="no longer in the world"):
+        god.god_peace(tl.world, tl.rng, gone)
+    assert tl.world.country(gone).stability == stability
+    assert tl.world.relations == relations
+    assert len(tl.world.log) == length
 
 
 # ---- god_edit ---------------------------------------------------------------------
