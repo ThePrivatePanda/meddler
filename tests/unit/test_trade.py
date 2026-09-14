@@ -483,6 +483,22 @@ def test_an_occupied_country_imports_what_it_lacks():
     assert fills[0].payload["qty"] == pytest.approx(20.0)
 
 
+def test_an_occupied_importer_is_sized_net_of_the_tribute_it_pays():
+    """Output that exactly meets need still drains the stock by the tribute every tick. Sized
+    from gross output the deficit was zero, so nothing was bought and the stock ran down to
+    a permanent shortage (seed 1337, TEF: 27 days of food to none in 140 ticks)."""
+    world = _clean_world(2, seed=5)
+    imp, exp = _sorted_countries(world)
+    _occupy(imp, exp)
+    imp.commodity_output["food"] = imp.commodity_need["food"]
+    exp.commodity_output["food"] = exp.commodity_need["food"] * 2.0
+    fills = _dispatches(trade.run(world, Rng(1)))
+    tribute = imp.commodity_output["food"] * config.OCCUPATION_EXTRACTIVE_TRIBUTE_SHARE
+    assert tribute > 0
+    assert [(f.payload["dest"], f.payload["commodity"]) for f in fills] == [(imp.code, "food")]
+    assert fills[0].payload["qty"] == pytest.approx(tribute)
+
+
 def test_a_famine_struck_occupied_country_gets_relief_from_a_friend():
     world = _clean_world(2, seed=5)
     imp, exp = _sorted_countries(world)

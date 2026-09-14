@@ -25,7 +25,7 @@ from meddler.engine import assets, commodities, config, space, tariffs
 from meddler.engine.events import Event
 from meddler.engine.model import Country, CountryStatus, World
 from meddler.engine.rng import Rng
-from meddler.engine.systems import logistics
+from meddler.engine.systems import commodity_production, logistics
 
 
 def _relation(world: World, a: str, b: str) -> float:
@@ -137,6 +137,11 @@ def run(world: World, rng: Rng) -> list[Event]:
     # into a shortage whose stability penalty blocked both exits from occupation.
     participants = world.living_countries()
     by_code = {c.code: c for c in participants}
+    # The deficit must be sized net of that tribute too. Sized from gross output, imports
+    # covered need - output while the tribute still drained the stock every tick: on seed
+    # 1337 TEF's food stock ran from 27 days to 0 in 140 ticks of occupation, and the
+    # shortage then held its stability under the annexation gate for good.
+    outgoing_tribute, _ = commodity_production.occupation_tribute(world)
     # (country, carrier) -> commodity units this country can still load OR land this tick.
     budgets: dict[tuple[str, str], float] = {}
 
@@ -145,6 +150,7 @@ def run(world: World, rng: Rng) -> list[Event]:
         surplus: dict[str, float] = {}  # code -> remaining exportable qty
         for c in participants:
             balance = c.commodity_output[name] - c.commodity_need[name]
+            balance -= outgoing_tribute.get((c.code, name), 0.0)
             if balance < 0:
                 deficits.append((c.code, -balance))
             elif balance > 0 and c.status == CountryStatus.ACTIVE:

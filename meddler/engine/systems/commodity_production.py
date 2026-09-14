@@ -110,7 +110,7 @@ def _target_need(country: Country, name: str) -> float:
     return country.population * config.COMMODITY_NEED_PER_CAPITA[name]
 
 
-def _occupation_tribute(
+def occupation_tribute(
     world: World,
 ) -> tuple[dict[tuple[str, str], float], dict[tuple[str, str], float]]:
     """Return outgoing/incoming extractive flow keyed by (country, commodity).
@@ -168,7 +168,7 @@ def run(world: World, rng: Rng) -> list[Event]:
                 achieved - country.commodity_output[name],
             )
 
-    outgoing_tribute, incoming_tribute = _occupation_tribute(world)
+    outgoing_tribute, incoming_tribute = occupation_tribute(world)
 
     # Phase 2: production/consumption balance plus M15 tribute. Stock remains a bounded
     # shock buffer; incoming tribute follows the same ceiling policy as domestic surplus.
