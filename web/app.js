@@ -2562,70 +2562,6 @@
     return recs;
   }
 
-  function localAnnalsImpactPayload(timelineId, sortBy) {
-    const events = Object.values(S.eventsByTimeline[timelineId] || {}).sort((a, b) => a.id - b.id);
-    const byId = {};
-    const children = {};
-    events.forEach((event) => { byId[event.id] = event; });
-    events.forEach((event) => {
-      const parents = event.parentIds || (event.parentId != null ? [event.parentId] : []);
-      parents.forEach((parentId) => {
-        if (!children[parentId]) children[parentId] = [];
-        children[parentId].push(event.id);
-      });
-    });
-    const leaders = [];
-    events.forEach((event) => {
-      const direct = (children[event.id] || []).slice().sort((a, b) => a - b);
-      if (!direct.length) return;
-      const seen = new Set();
-      const pending = direct.slice().reverse().map((id) => [id, 1]);
-      let generations = 0;
-      while (pending.length) {
-        const entry = pending.pop();
-        if (seen.has(entry[0])) continue;
-        seen.add(entry[0]); generations = Math.max(generations, entry[1]);
-        (children[entry[0]] || []).slice().reverse().forEach((id) => pending.push([id, entry[1] + 1]));
-      }
-      const descendants = Array.from(seen).sort((a, b) => a - b).map((id) => byId[id]).filter(Boolean);
-      const affected = new Set();
-      [event].concat(descendants).forEach((item) => {
-        if (item.country) affected.add(item.country);
-        if (item.country2) affected.add(item.country2);
-      });
-      leaders.push({
-        event: event,
-        directChildren: direct.length,
-        descendants: descendants.length,
-        generations: generations,
-        affectedCountries: Array.from(affected).sort(),
-        recordedEffects: [event].concat(descendants).reduce((sum, item) => sum + (item.effects || []).length, 0),
-        crisisDescendants: descendants.filter((item) => item.severity >= 2).length,
-        lastDescendantTick: descendants.reduce((tick, item) => Math.max(tick, item.tick), event.tick),
-        children: direct.slice(0, 6).map((id) => byId[id]).filter(Boolean)
-      });
-    });
-    const fields = {
-      descendants: ["descendants", "directChildren", "recordedEffects", "affectedCountries"],
-      children: ["directChildren", "descendants", "recordedEffects", "affectedCountries"],
-      effects: ["recordedEffects", "descendants", "directChildren", "affectedCountries"],
-      countries: ["affectedCountries", "descendants", "directChildren", "recordedEffects"]
-    };
-    const normalized = fields[sortBy] ? sortBy : "descendants";
-    const value = (row, field) => field === "affectedCountries" ? row.affectedCountries.length : row[field];
-    leaders.sort((a, b) => {
-      for (const field of fields[normalized]) {
-        const diff = value(b, field) - value(a, field);
-        if (diff) return diff;
-      }
-      return b.event.severity - a.event.severity || a.event.id - b.event.id;
-    });
-    return {
-      type: "annalsImpact", tl: timelineId, tick: S.viewTick, sortBy: normalized,
-      eventCount: events.length, leaders: leaders.slice(0, 30), approximate: true
-    };
-  }
-
   function onAnnalsImpact(message) {
     S.annalsImpact[message.tl] = message;
     S.annalsImpactLoading[message.tl] = false;
@@ -2644,22 +2580,17 @@
     if (!force && cached && cached.sortBy === S.annals.impactSort && cached.tick >= S.viewTick) return;
     if (S.annalsImpactLoading[timelineId]) return;
     S.annalsImpactLoading[timelineId] = true;
-    if (isMockEngine) {
-      onAnnalsImpact(localAnnalsImpactPayload(timelineId, S.annals.impactSort));
-    } else {
-      sendCommand(
-        { cmd: "annalsImpact", tl: timelineId, sortBy: S.annals.impactSort, limit: 30 },
-        "Computing timeline impact…",
-        "annalsImpact:" + timelineId
-      );
-    }
+    sendCommand(
+      { cmd: "annalsImpact", tl: timelineId, sortBy: S.annals.impactSort, limit: 30 },
+      "Computing timeline impact…",
+      "annalsImpact:" + timelineId
+    );
   }
 
   // The engine's own archive (bridge `annals`): eras, wars, records and major events, all
   // derived from the real log. Until a bridge serves it, the tab falls back to deriving what
   // it can from the events this page has received.
   function requestAnnals(force) {
-    if (isMockEngine) return;
     const timelineId = activeTimelineId();
     const cached = S.annalsData[timelineId];
     // The archive is a picture of one tick, so a scrub in either direction invalidates it.
@@ -2904,15 +2835,15 @@
       "</div>";
     if (A.tab === "impact") h += annalsImpactHTML();
     else if (A.tab === "acts") h += annalsActsHTML();
-    else if (!isMockEngine && S.annalsData[activeTimelineId()]) h += annalsDataHTML(S.annalsData[activeTimelineId()]);
-    else if (!isMockEngine && S.annalsDataLoading[activeTimelineId()] && !S.annalsLate[activeTimelineId()]) {
+    else if (S.annalsData[activeTimelineId()]) h += annalsDataHTML(S.annalsData[activeTimelineId()]);
+    else if (S.annalsDataLoading[activeTimelineId()] && !S.annalsLate[activeTimelineId()]) {
       // Never show the page-derived record while the engine's own archive is on its way —
       // the two do not agree, and the real one is authoritative. Once this timeline's
       // archive has been late once, a retry waits behind the fallback instead of putting
       // the reader back on a spinner every time a filter changes.
       h += annalsFilterRowHTML() + loadingHTML("Reading the Annals from the engine…");
     } else {
-      if (!isMockEngine && S.annalsLate[activeTimelineId()]) {
+      if (S.annalsLate[activeTimelineId()]) {
         h += '<div class="annscope">The engine has not answered for its archive yet, so what ' +
           "follows is assembled from the events this page has received. It is replaced the " +
           "moment the archive arrives.</div>";
