@@ -556,20 +556,6 @@
       return assetInfo(assetById(id));
     }
 
-    function noteEvent(event) {
-      if (!event || event.kind !== "SHIPMENT_LOST") return;
-      const shipmentId = event.payload && event.payload.shipment_id;
-      if (shipmentId && state.lossPinged[shipmentId]) return;
-      if (shipmentId) state.lossPinged[shipmentId] = true;
-      const asset = shipmentId ? assetById(shipmentId) : null;
-      if (asset && asset.lastLL) {
-        state.pings.push({ ll: asset.lastLL, color: "#ec835a", t0: performance.now() / 1000, big: true });
-      } else if (event.country && state.countries[event.country]) {
-        const center = state.countries[event.country].center;
-        state.pings.push({ ll: [center[0] * D2R, center[1] * D2R], color: "#ec835a", t0: performance.now() / 1000, big: true });
-      }
-    }
-
     // ---------------------------------------------------------------- projection
     let sinF0 = 0, cosF0 = 1, lam0 = 0, sinL0 = 0, cosL0 = 1, radius = 100, cx = 0, cy = 0;
     const P = new Float64Array(4);
@@ -1667,7 +1653,6 @@
         }
       },
       setWars: function (wars) { state.wars = wars || []; labels.dirty = true; },
-      noteEvent: noteEvent,
       setSelected: function (code) { state.selected = code; labels.dirty = true; },
       setSelectedAsset: function (id) {
         state.selectedAsset = id;

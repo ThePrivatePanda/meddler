@@ -877,7 +877,6 @@
   }
   function markEvent(e, tl) {
     const visible = (S.focusId === "A") ? "A" : "B";
-    if (globe && tl === visible) globe.noteEvent(e);
     if (e.intervention) {
       S.markers.push({ tick: e.tick, kind: "iv", tl: tl });
       if (globe && tl === visible) globe.ping(e.country, "#9085e9");

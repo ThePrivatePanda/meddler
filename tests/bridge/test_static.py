@@ -81,7 +81,6 @@ def test_protocol_v2_frontend_consumes_only_authoritative_real_engine_globe_obje
         "id: shipment.id",
         "if (state.authoritative || !state.mockMode) return;",
         "if (state.authoritative || !state.mockMode) return null;",
-        'event.kind !== "SHIPMENT_LOST"',
     ):
         assert required in globe
 
@@ -96,7 +95,6 @@ def test_protocol_v2_frontend_consumes_only_authoritative_real_engine_globe_obje
         "m.timelines.A.worldObjects",
         "m.timelines.B.worldObjects",
         "m.worldObject",
-        "globe.noteEvent(e)",
         "Shipment id",
         "AUTHORITATIVE INVENTORY",
         "Observed engine state is read-only here",
