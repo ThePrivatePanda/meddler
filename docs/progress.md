@@ -1846,8 +1846,9 @@ the 2026-09-13 notes that trade only runs between `ACTIVE` countries, which was 
 shipments needed no annexation guard. Cargo can now be at sea when its destination is
 annexed. `logistics._arrive` pays the exporter and retires the shipment but stores nothing in a
 country that has left the world. Before this change, the new logistics test put 20 units into
-the annexed country. No new state or RNG. Three new tests fail without the change; the
-does-not-export test passes either way.
+the annexed country. No new state or RNG. The does-not-export test passes on both trees, since
+`public` already kept occupied countries out of trade; it guards the new code, and failing
+without the change was never true of it.
 
 1,500 ticks, a single run per seed:
 
@@ -1857,11 +1858,50 @@ does-not-export test passes either way.
 | 1337 after | TEF t120-end (min stab 0) | 1,381 | TEF | 6 | 1 / 0 / 0 | 59 |
 | 7 before and after | none | 0 | none | 0 | 0 / 0 / 0 | 21 |
 
-**TEF still does not recover. This is not fixed yet.** Food is extractive, so tribute takes
-25% of TEF's food output (about 0.059 a tick), but trade sizes the deficit from gross output
-(need 0.287 minus output 0.237, so 0.049). Imports cover the gross gap and not the tribute,
-so the stock never climbs back past the shortage line. This comes from the base-run numbers.
-No probe has confirmed it. The likely next step is to size an occupied importer's deficit net
-of `commodity_production._occupation_tribute`. Seed 1337's other occupations vanished because
+With imports alone TEF still did not recover. Seed 1337's other occupations vanished because
 the history diverged, not because they ended. Seed 7 has no occupation in 1,500 ticks, so it
 tests nothing here.
+
+### The tribute gap, probed and closed
+
+A per-tick probe of TEF on seed 1337 (t100-t600, imports-only tree) confirmed the cause. Food
+is extractive, so the occupier takes 25% of output: 0.237 x 0.25 = 0.059 a tick. Trade sized
+the deficit from gross output, need 0.297 minus output 0.237 = 0.059, and one shipment of
+0.059 landed every tick. Stock therefore fell by exactly the tribute: 8.08 (27 days of need)
+at t120, 3.33 at t200, 0.06 by t260. From there the shortage flag held on 82% of occupied
+ticks, inflation parked at 17.4 and stability at 11.7, under the annexation gate of 15,
+although TEF's stability target was 48.75-51.75. (The earlier estimate of need 0.287 was off;
+the conclusion held.)
+
+Fix: `trade.run` subtracts `commodity_production.occupation_tribute` (made public, same
+figures commodity production applies) from each country's balance, so an occupied importer
+buys need - output + tribute. Nothing changes for a country that pays no tribute. The new
+test `test_an_occupied_importer_is_sized_net_of_the_tribute_it_pays` fails on the
+imports-only tree (no dispatch at all) and passes after.
+
+The same probe after the fix: TEF now imports 0.119 a tick while occupied (gap 0.059 plus
+tribute 0.059). Its stock settles at 7.36, 24.8 days of need, instead of draining. The
+shortage flag was on for 0% of occupied ticks (82% before), and stability rose from 0 at
+t120 to 26.4 at t160 and 38.8 at t200, clearing the annexation gate.
+
+`tests/unit/test_history_storage.py` fails on `public` HEAD as well, only on its two pinned
+seed-1337 counts (snapshot lengths `[0, 5863, 12045]` against `[0, 5702, 11554]`; t200 events
+24,010 against 23,268; this branch gives 24,347). Checked by count-patched run on public:
+2 passed, so the architectural assertions hold. The counts are left for one re-pin after
+the golden master is regenerated.
+
+1,500 ticks, `public` HEAD against this branch, a single run per seed (seed 3 is the only
+seed in 0..8 with an occupation):
+
+| | occupation episodes | food dispatches to occupied | OCC / ANNEX / LIB | FAMINE | infra fails | sev-2 | arrivals at annexed dests |
+|---|---|---|---|---|---|---|---|
+| 1337 public | TEF t120-end, BOL t411-end, NUM t414-510 annexed (min stab 0 each) | 3 | 3 / 1 / 0 | 2 | 13 | 112 | 0 |
+| 1337 fix | TEF t120-229 annexed (min stab 0) | 109 | 1 / 1 / 0 | 0 | 8 | 68 | 23 |
+| 3 public | REM t285-380 annexed, BIE t299-end (min stab 0 each) | 1 | 2 / 1 / 0 | 1 | 8 | 78 | 0 |
+| 3 fix | REM t285-376 annexed, BIE t299-402 annexed (min stab 0 each) | 103 | 2 / 2 / 0 | 0 | 1 | 74 | 140 |
+
+Every occupation now ends, all by annexation; no liberation fired. Open question: arrivals at
+annexed destinations are written off by `logistics._arrive` with the exporter still paid, and
+seed 3 has 140 of them. That is cargo already at sea when annexation lands, plus a fleet that
+keeps sailing to a country for its whole transit time. Whether paying for undelivered cargo
+at that volume is acceptable has not been examined.
