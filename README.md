@@ -122,8 +122,10 @@ golden master stable.
 
 - The world is fictional and deliberately legible rather than realistic.
 - Each country settles toward a stability of its own rather than a shared ceiling, so the map
-  reads as nations with different temperaments. What moves a country off its own level is
-  events -- so a nation that wars, coups and shortages all happen to miss can sit almost
+  reads as nations with different temperaments. A change of ruler nudges that level by the new
+  leader's character and a revolution resets it, while each handover also pulls it back toward
+  the nation's founding temperament. What moves a country off its level from tick to tick is
+  still events -- so a nation that wars, coups and shortages all happen to miss can sit almost
   unchanged for a long stretch, and in a quiet world more than one of them can.
 - History lives for one server run. There is no save/load across restarts yet.
 - Most interventions are declarative: stat and pool changes that cascade. War, peace, alliance,
