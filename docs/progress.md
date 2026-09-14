@@ -1759,3 +1759,41 @@ raises the crisis rate needs a multi-seed comparison against an equally perturbe
   clamps, with only REVOLUTION pulling back.
 - The golden master drifts from t0584 on this branch and was not regenerated; the two-run
   determinism check passes, and `test_history_storage.py` still passes as pinned.
+
+## 2026-09-13 — One drought erased a country's farms for good
+
+On seed 7, TEA sat at stability 0 for 1,081 of 1,500 ticks with no food output. It started out
+exporting food (1.24 against a need of 0.89). At tick 15 a DROUGHT recorded
+`grain_output -1.243`, which was its entire output. The spec asks for -2.0, and the clamp at
+zero cut that down. Food output is static after worldgen, so nothing ever put it back.
+Largest possible genesis food output is 60M x 0.05543 x arable 1.0 = 3.3, and typical output
+is under 1.5. That means DROUGHT's flat -2.0 and LOCUST_SWARM's -3.0 wiped out almost any
+country they hit. Seed 1337 has the same failure: PIT lost 1.604 at t192 and FOT lost 1.56 at
+t1404.
+
+Trade and relief were not broken. They were working without enough food. The world went from
+0.84 surplus against 0.43 deficit at genesis to 0.39 surplus against 1.37 deficit, so the
+greedy match left tail importers short. That is documented behaviour. Relief needs a relation
+of 40 or more with a supplier, and TEA's best was about 0. Fleets did not limit anything:
+TEA's rail capacity was 1.36 at t150.
+
+Fix: a negative `grain_output` delta in `cascade._apply_spec_effects` now takes at most
+`CROP_SHOCK_MAX_FRACTION` (0.25) of current output. This is the proportional cap that
+population attrition already uses (`stats.attrition_delta`, now with an optional fraction).
+Hits still persist and stack, so `test_drought_still_dents_food_output_permanently` is
+unchanged. The new test `test_a_crop_shock_dents_food_output_without_erasing_it` fails without
+the cap. No new state or RNG. The recorded delta is the post-cap change, so `world_at` replays
+it.
+
+These are 1,500-tick runs, a single run per seed:
+
+| | starving countries (stock 0, out < need, >30% of ticks) | stability-0 countries | FAMINE | sev-2 |
+|---|---|---|---|---|
+| seed 7 before | TAB, TEA, LOF | TEA | 3 | 76 |
+| seed 7 after | VAZ, LOF | none | 6 | 66 |
+| seed 1337 before | TEF | none | 2 | 118 |
+| seed 1337 after | none | none | 0 | 57 |
+
+Seed 7's FAMINE rose from 3 to 6 once its history diverged. VAZ now starves because the world
+is still short of food, not because its output reached zero. Treat these numbers as one run
+per seed. The golden master differs, starting at line 112, and was not regenerated.
