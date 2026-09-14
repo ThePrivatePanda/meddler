@@ -480,7 +480,10 @@ def test_an_occupied_country_imports_what_it_lacks():
     exp.commodity_output["food"] = exp.commodity_need["food"] + 30.0
     fills = _dispatches(trade.run(world, Rng(1)))
     assert [(f.payload["origin"], f.payload["dest"]) for f in fills] == [(exp.code, imp.code)]
-    assert fills[0].payload["qty"] == pytest.approx(20.0)
+    # The deficit includes the tribute paid on positive output (none here if output is < 0).
+    tribute = max(0.0, imp.commodity_output["food"]) * config.OCCUPATION_EXTRACTIVE_TRIBUTE_SHARE
+    expected = imp.commodity_need["food"] - imp.commodity_output["food"] + tribute
+    assert fills[0].payload["qty"] == pytest.approx(expected)
 
 
 def test_an_occupied_importer_is_sized_net_of_the_tribute_it_pays():
