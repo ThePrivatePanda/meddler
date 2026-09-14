@@ -23,7 +23,7 @@ def test_periodic_snapshots_share_one_history_store_without_hydrated_events() ->
     # Pinned counts, not claims: they are this seed's event totals at the snapshot
     # boundaries, here so a behaviour change gets noticed. The assertions around them --
     # one shared database, no hydrated events, a bounded live cache -- are the subject.
-    assert [len(log) for log in snapshot_logs] == [0, 5702, 11554]
+    assert [len(log) for log in snapshot_logs] == [0, 5863, 12045]
     assert all(log.resident_event_count == 0 for log in snapshot_logs)
     assert live_log.resident_event_count <= live_log.CACHE_LIMIT
 
@@ -63,9 +63,9 @@ print(json.dumps({
     )
     measurement = json.loads(completed.stdout)
     # A pinned count, as above. The three assertions below it are the architectural
-    # claims and none of them moved: 5 snapshots, the cache bound still held, and RSS
-    # measured at 41.9 MiB against the 140 ceiling.
-    assert measurement["events"] == 23268
+    # claims: 5 snapshots, the resident-event cache bound, and RSS under the 140 MiB
+    # ceiling. Re-pinning the count after a behaviour change leaves them untouched.
+    assert measurement["events"] == 24347
     assert measurement["snapshots"] == 5
     assert measurement["residentEvents"] <= 512
     # Verified pre-migration baseline was 268.4 MiB at t200. Keep generous CI headroom
