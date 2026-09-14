@@ -355,9 +355,13 @@
   };
 
   // ---- plumbing ----
+  // Replies are delivered on a later microtask, as a socket would deliver them. Delivering
+  // inside send() let a reply open its overlay before the caller had put up its loading
+  // overlay, which then covered the result for good.
   FakeEngine.prototype._emit = function (msg) {
     if (this.requestId != null && msg.requestId == null) msg.requestId = this.requestId;
-    if (this.out) this.out(msg);
+    const out = this.out;
+    if (out) Promise.resolve().then(function () { out(msg); });
   };
   FakeEngine.prototype._status = function () {
     this._emit({
