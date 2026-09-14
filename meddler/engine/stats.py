@@ -20,17 +20,23 @@ if TYPE_CHECKING:
     from meddler.engine.model import Country, World
 
 
-def attrition_delta(population: float, requested_loss: float) -> float:
+def attrition_delta(
+    population: float, requested_loss: float, max_fraction: float | None = None
+) -> float:
     """The population a country actually loses when an event asks to take `requested_loss`.
 
     Negative, and never more than `POPULATION_ATTRITION_MAX_FRACTION` of whoever is left, so
     a population approaches zero without ever arriving there. Shared by the declarative path
     (cascade applies a spec's "population" stat_delta) and the structural one
     (systems/war.py's strike damage) so the two can never disagree about what a loss means.
+
+    `max_fraction` overrides the cap for another stock-like quantity with the same failure
+    mode (cascade uses it for crop shocks against food output).
     """
     if requested_loss <= 0.0 or population <= 0.0:
         return 0.0
-    return -min(requested_loss, population * config.POPULATION_ATTRITION_MAX_FRACTION)
+    fraction = config.POPULATION_ATTRITION_MAX_FRACTION if max_fraction is None else max_fraction
+    return -min(requested_loss, population * fraction)
 
 
 def apply_country_stat(

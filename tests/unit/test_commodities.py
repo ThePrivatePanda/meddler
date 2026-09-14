@@ -6,6 +6,7 @@ import pytest
 
 from meddler.engine import cascade, commodities, config
 from meddler.engine.model import WorldSettings
+from meddler.engine.rng import Rng
 from meddler.engine.worldgen import generate_world
 
 
@@ -316,6 +317,29 @@ def test_drought_still_dents_food_output_permanently() -> None:
     for _ in range(3):
         commodity_production.run(world, Rng(1))
     assert country.grain_output == dented, "DROUGHT's grain_output hit must persist"
+
+
+@pytest.mark.parametrize("kind", ["DROUGHT", "LOCUST_SWARM"])
+def test_a_crop_shock_dents_food_output_without_erasing_it(kind: str) -> None:
+    """A crop shock takes a bounded SHARE of food output, never all of it.
+
+    DROUGHT's -2.0 and LOCUST_SWARM's -3.0 are flat v1 magnitudes, but the largest possible
+    genesis food output is 60M x 0.05543 x arable 1.0 = 3.3, and a typical country produces
+    well under 2.0. Floored at zero, one drought zeroed a country's farms for the rest of the
+    run: food output is static after worldgen, so nothing ever restored it. Seed 7's TEA
+    exported food at genesis (1.24 against a need of 0.89), lost all 1.24 to a tick-15
+    drought, and sat at stability 0 for ~1,080 of 1,500 ticks.
+    """
+    world = generate_world(7, WorldSettings())
+    country = world.country("TEA")
+    before = country.grain_output
+    cascade.emit_event(
+        world, Rng(1), kind=kind, primary=country.code, secondary=None,
+        parent_id=None, depth=0, is_intervention=False, payload={},
+    )
+    assert country.grain_output < before
+    assert country.grain_output > 0.0, f"{kind} erased all of {country.code}'s food output"
+    assert country.grain_output >= before * (1.0 - config.CROP_SHOCK_MAX_FRACTION)
 
 
 def test_produced_output_falls_when_gdp_falls() -> None:

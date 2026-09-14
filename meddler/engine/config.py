@@ -718,6 +718,13 @@ STRIKE_STABILITY_DAMAGE = 2.0  # maximum at zero distance; scaled by distance fa
 # nation blinking out because a subtraction hit a floor is not. Healthy countries are
 # unaffected: 0.3M off a 40M nation is far below the cap and still costs exactly 0.3M.
 POPULATION_ATTRITION_MAX_FRACTION = 0.25
+# Crop shocks (DROUGHT -2.0, LOCUST_SWARM -3.0 food output) take at most this share of a
+# country's CURRENT food output per event. The flat magnitudes exceed almost every country's
+# whole output (max genesis output is 60M x 0.05543 x arable 1.0 = 3.3; typical is under
+# 1.5), and food output is static after worldgen, so a floored flat hit zeroed a country's
+# farms permanently: seed 7's TEA, a genesis food exporter, lost all 1.24 to one tick-15
+# drought and starved at stability 0 for the rest of the run. Hits still persist and stack.
+CROP_SHOCK_MAX_FRACTION = 0.25
 STRIKE_POPULATION_DAMAGE = 0.03  # millions (30,000) maximum; scaled by distance factor
 STRIKE_INFRA_DAMAGE = 0.012  # condition damage to every asset class; distance-scaled
 

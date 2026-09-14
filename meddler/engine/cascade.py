@@ -45,7 +45,7 @@ from meddler.engine.model import Country, World
 from meddler.engine.registry import EVENT_REGISTRY, Condition, ConsequenceRule, EventSpec
 from meddler.engine.rng import Rng
 from meddler.engine.stats import apply_country_stat, attrition_delta, apply_infra_condition
-from meddler.engine import assets, structural
+from meddler.engine import assets, config, structural
 
 # Clamp ranges for stat_deltas. apply_country_stat's contract requires the RECORDED
 # delta to be the post-clamp actual change (new - old), so replay reproduces clamped
@@ -106,8 +106,15 @@ def _apply_spec_effects(
         old = float(getattr(country, stat))
         # Population losses scale with whoever is left (see config's own note): a flat
         # subtraction floored at zero ARRIVES there, and a country with no people still gets
-        # simulated. A gain is unaffected -- only the loss is capped.
-        new = old + (attrition_delta(old, -raw) if stat == "population" and raw < 0 else raw)
+        # simulated. A gain is unaffected -- only the loss is capped. Crop shocks against food
+        # output get the same treatment (config.CROP_SHOCK_MAX_FRACTION): food output is
+        # static after worldgen, so a floored flat hit erased a country's farms for good.
+        if raw < 0 and stat == "population":
+            new = old + attrition_delta(old, -raw)
+        elif raw < 0 and stat == "grain_output":
+            new = old + attrition_delta(old, -raw, config.CROP_SHOCK_MAX_FRACTION)
+        else:
+            new = old + raw
         if lo is not None:
             new = max(lo, new)
         if hi is not None:
