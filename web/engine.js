@@ -257,6 +257,29 @@
       (x) => `✦ Genius strikes ${x.c} from a clear sky; the patent office queues around the block.`
     ]
   };
+  // WorldSettings defaults (meddler/engine/model.py). The mock models only a few of them:
+  // `drama_multiplier` scales exogenous rolls and `max_depth` bounds cascades; the rest are
+  // stored and echoed so the settings overlay behaves as it does against the engine.
+  const DEFAULT_SETTINGS = {
+    allow_secession: true, allow_conquest: true, allow_nukes: false,
+    max_countries: 20, max_wars_concurrent: 4, protected_countries: [], observer_only: false,
+    cascade_decay: 0.7, max_depth: 8, drama_multiplier: 0.4, relation_decay_rate: 0.005,
+    ticks_per_year: 365, snapshot_interval: 50, enabled_event_tags: ["*"],
+    disabled_event_tags: [], silent_god_edits: false,
+    starting_country_count: 8, starting_stability_range: [40.0, 85.0],
+    starting_inflation_range: [1.0, 6.0], rival_pairs: 4, friendly_pairs: 4, region_count: 5
+  };
+  const RESTART_REQUIRED_SETTINGS = [
+    "starting_country_count", "starting_stability_range", "starting_inflation_range",
+    "rival_pairs", "friendly_pairs", "region_count"
+  ];
+  const ANNALS_MAJOR_EVENT_LIMIT = 200;
+  const ANNALS_IMPACT_WINDOW_TICKS = 500;
+  const EFFECT_METRICS = ["stability", "inflation", "gdp", "grainDays", "fx", "treasury", "pop"];
+  function roundEffect(metric, v) {
+    const scale = metric === "fx" ? 1000 : 100;
+    return Math.round(v * scale) / scale;
+  }
   const REGIONS = ["Eastern Reach", "Low Valleys", "Amber Coast", "High Steppe", "Middle Delta"];
   const CHAOS_POOL = ["DROUGHT", "SCANDAL", "INNOVATION", "PLAGUE", "EARTHQUAKE", "GOLDEN_AGE", "METEOR", "SECESSION"];
 
@@ -270,6 +293,15 @@
     this.timer = null;
     this.scrubbed = false;
     this.wasRunning = true;
+    this.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+    this._genesis(this.seed);
+  }
+
+  // A world from nothing: nations, ids, timelines and forks all start over.
+  FakeEngine.prototype._genesis = function (seed) {
+    this.seed = seed >>> 0;
+    this.nextId = 1;
+    this.scrubbed = false;
     this.eventIndex = {};             // id -> { ev, tl }
     this.meta = {};                   // code -> static-ish country meta (global)
     BASE_COUNTRIES.forEach((c) => {
@@ -281,7 +313,19 @@
     this.A = this._newTimeline("A", mulberry32(this.seed));
     this.forks = [];                  // up to 3 concurrent fork timelines
     this.focusId = "A";
-  }
+  };
+  FakeEngine.prototype._warmUp = function () {
+    for (let i = 0; i < 120; i++) this._advance(this.A);
+    this.A.frameEvents = []; // warm-up events arrive via the snapshot, not a frame
+  };
+  FakeEngine.prototype._helloMsg = function () {
+    return {
+      type: "hello", protocol: 1, seed: this.seed, tps: this.tps,
+      countries: this.A.codes.map((c) => this.meta[c]),
+      interventions: INTERVENTIONS,
+      settings: JSON.parse(JSON.stringify(this.settings))
+    };
+  };
 
   FakeEngine.prototype._fork = function (id) {
     return this.forks.find((f) => f.id === id) || null;
@@ -311,13 +355,8 @@
   // ---- public surface (contract §1) ----
   FakeEngine.prototype.connect = function (onMessage) {
     this.out = onMessage;
-    for (let i = 0; i < 120; i++) this._advance(this.A);
-    this.A.frameEvents = []; // warm-up events arrive via the snapshot, not a frame
-    this._emit({
-      type: "hello", protocol: 1, seed: this.seed, tps: this.tps,
-      countries: this.A.codes.map((c) => this.meta[c]),
-      interventions: INTERVENTIONS
-    });
+    this._warmUp();
+    this._emit(this._helloMsg());
     this._emit(this._snapshotMsg(this.A.tick));
     this._setRunning(true);
   };
@@ -347,6 +386,12 @@
         case "godRelation": this._godRelation(cmd.a, cmd.b, cmd.delta); break;
         case "godPeace": this._godPeace(cmd.code, cmd.foe); break;
         case "countryDetail": this._countryDetail(cmd.code, cmd.tl); break;
+        case "countryChartEvents": this._countryChartEvents(cmd); break;
+        case "eventImpact": this._eventImpact(cmd); break;
+        case "annals": this._annals(cmd); break;
+        case "annalsImpact": this._annalsImpact(cmd); break;
+        case "updateSettings": this._updateSettings(cmd.settings); break;
+        case "newWorld": this._newWorld(cmd); break;
         default: this._emit({ type: "toast", text: "Unknown command: " + cmd.cmd, tone: "warn" });
       }
     } finally {
@@ -485,15 +530,17 @@
       else if (!arm.debt && s.treasury > 400) arm.debt = true;
     });
 
-    // exogenous rolls (tuned sparse — the world should breathe slowly)
-    if (rng() < 0.006) this._fire(TL, "DROUGHT", this._pick(TL), null, 0, {});
-    if (rng() < 0.004) this._fire(TL, "SCANDAL", this._pick(TL), null, 0, {});
-    if (rng() < 0.0035) this._fire(TL, "INNOVATION", this._pick(TL), null, 0, {});
-    if (rng() < 0.002) this._fire(TL, "PLAGUE", this._pick(TL), null, 0, {});
-    if (rng() < 0.002) this._fire(TL, "EARTHQUAKE", this._pick(TL), null, 0, {});
-    if (rng() < 0.0012) this._fire(TL, "GOLDEN_AGE", this._pick(TL), null, 0, {});
-    if (rng() < 0.0002) this._fire(TL, "METEOR", this._pick(TL), null, 0, {});
-    if (rng() < 0.003) {
+    // exogenous rolls (tuned sparse — the world should breathe slowly); the drama setting
+    // scales them relative to its default
+    const drama = Number(this.settings.drama_multiplier) / DEFAULT_SETTINGS.drama_multiplier;
+    if (rng() < 0.006 * drama) this._fire(TL, "DROUGHT", this._pick(TL), null, 0, {});
+    if (rng() < 0.004 * drama) this._fire(TL, "SCANDAL", this._pick(TL), null, 0, {});
+    if (rng() < 0.0035 * drama) this._fire(TL, "INNOVATION", this._pick(TL), null, 0, {});
+    if (rng() < 0.002 * drama) this._fire(TL, "PLAGUE", this._pick(TL), null, 0, {});
+    if (rng() < 0.002 * drama) this._fire(TL, "EARTHQUAKE", this._pick(TL), null, 0, {});
+    if (rng() < 0.0012 * drama) this._fire(TL, "GOLDEN_AGE", this._pick(TL), null, 0, {});
+    if (rng() < 0.0002 * drama) this._fire(TL, "METEOR", this._pick(TL), null, 0, {});
+    if (rng() < 0.003 * drama) {
       const pair = this._hostilePair(TL);
       if (pair && !TL.wars.length) this._fire(TL, "WAR_DECLARED", pair[0], null, 0, { foe: pair[1] });
     }
@@ -514,7 +561,8 @@
     const due = TL.queue.filter((q) => q.due <= TL.tick);
     TL.queue = TL.queue.filter((q) => q.due > TL.tick);
     due.forEach((q) => {
-      if (q.depth <= 6 && TL.stats[q.country]) this._fire(TL, q.kind, q.country, q.parentId, q.depth, q.payload || {});
+      // the mock's cascades stop two levels short of the setting (6 at the default of 8)
+      if (q.depth <= this.settings.max_depth - 2 && TL.stats[q.country]) this._fire(TL, q.kind, q.country, q.parentId, q.depth, q.payload || {});
     });
 
     // snapshot for scrubbing / fork alignment
@@ -604,6 +652,11 @@
     payload = payload || {};
     let newLeaderName = null;
     let childMeta = null;
+    // Every nation's stats before the event moves them, so the event can carry the exact
+    // before/after of what it did (contract §2 `effects`). All of them, because some kinds
+    // (PEACE, secession) only learn which other nation they touch inside the switch.
+    const before = {};
+    TL.codes.forEach((c) => { before[c] = Object.assign({}, TL.stats[c]); });
 
     switch (kind) {
       case "DROUGHT": case "INTERVENE_DROUGHT":
@@ -770,11 +823,37 @@
     const templates = T[kind] || [(x) => kind + " in " + x.c + "."];
     const headline = templates[id % templates.length](ctx);
 
+    const effects = [];
+    Object.keys(before).forEach((c) => {
+      const after = TL.stats[c];
+      if (!after) return;
+      EFFECT_METRICS.forEach((metric) => {
+        const b = before[c][metric], a = after[metric];
+        if (typeof a !== "number" || Math.abs(a - b) < 1e-9) return;
+        effects.push({
+          type: "stat", target: c, metric: metric, delta: roundEffect(metric, a - b),
+          before: roundEffect(metric, b), after: roundEffect(metric, a), unit: ""
+        });
+      });
+    });
+    ledger.forEach((row) => {
+      effects.push({
+        type: "money", target: row.to, metric: "treasury", delta: row.amount,
+        before: null, after: null, unit: "M " + row.currency
+      });
+    });
+    if (childMeta) {
+      effects.push({ type: "structural", target: childMeta.code, metric: "created", delta: null, before: null, after: null, unit: "" });
+    }
+
     const ev = {
       id: id, tick: t, kind: kind, severity: SEVERITY[kind] != null ? SEVERITY[kind] : 1,
-      country: code, parentId: parentId, depth: depth,
+      country: code, country2: payload.foe || null,
+      parentId: parentId, parentIds: parentId != null ? [parentId] : [],
+      causes: parentId != null ? [{ eventId: parentId, role: "trigger", detail: "direct consequence" }] : [],
+      depth: depth,
       intervention: kind.indexOf("INTERVENE_") === 0 || !!forceIv,
-      headline: headline, payload: payload, ledger: ledger
+      headline: headline, payload: payload, ledger: ledger, effects: effects
     };
     TL.events.push(ev);
     TL.frameEvents = TL.frameEvents || [];
@@ -793,6 +872,7 @@
     tick = clamp(Math.round(tick), 1, A.tick);
     if (!this.scrubbed) this.wasRunning = this.running;
     this.scrubbed = true;
+    this.scrubTick = tick;
     this._setRunning(false);
     this._emit(this._snapshotMsg(tick));
   };
@@ -895,6 +975,7 @@
       stats: this._roundStats((function (o) { const d = {}; d[code] = o; return d; })(s), TL.wars)[code],
       leader: TL.leaders[code],
       ticks: ticks, series: series, relations: relations, cities: cities,
+      chartEventMode: "interval", chartEvents: [],
       recentEvents: TL.events.filter((e) => e.country === code).slice(-15),
       bornAt: meta.parent ? (ticks.length ? ticks[0] : null) : 0
     });
@@ -1062,6 +1143,318 @@
       this._fire(TL, "PEACE", code, null, 0, { foe: other }, true);
     });
     this._emitFrame();
+  };
+
+  // ---- causal inspection, archive and settings (contract §3, §4.1, §6, §9) ----
+  // Every answer below is read from the timeline's own event list, so it agrees with the
+  // feed: a fork's list starts with prime's shared history, so its edges are indexed from
+  // that list rather than from the per-timeline `children` map, which a fork starts empty.
+  FakeEngine.prototype._timelineFor = function (tl) {
+    return (tl && tl !== "A" && this._fork(tl)) ? this._fork(tl) : this.A;
+  };
+  function childIndex(events) {
+    const children = {};
+    events.forEach((e) => {
+      (e.parentIds || []).forEach((p) => { (children[p] = children[p] || []).push(e.id); });
+    });
+    Object.keys(children).forEach((k) => children[k].sort((a, b) => a - b));
+    return children;
+  }
+  function eventSummary(e) {
+    return {
+      id: e.id, tick: e.tick, kind: e.kind, severity: e.severity, country: e.country,
+      country2: e.country2 || null, headline: e.headline, parentId: e.parentId,
+      parentIds: (e.parentIds || []).slice(), causes: (e.causes || []).slice(), depth: e.depth,
+      intervention: e.intervention, payload: Object.assign({}, e.payload),
+      effects: (e.effects || []).slice(), ledger: []
+    };
+  }
+  function involves(e, code) {
+    return code == null || e.country === code || e.country2 === code;
+  }
+
+  FakeEngine.prototype._eventImpact = function (cmd) {
+    const TL = this._timelineFor(cmd.tl);
+    const eventId = Number(cmd.eventId);
+    const byId = {};
+    TL.events.forEach((e) => { byId[e.id] = e; });
+    const ev = byId[eventId];
+    if (!ev) { this._emit({ type: "toast", text: "no event with id " + cmd.eventId, tone: "warn" }); return; }
+    const horizon = cmd.horizon != null ? Math.max(0, Math.round(Number(cmd.horizon))) : null;
+    const cutoff = horizon == null ? Infinity : ev.tick + horizon;
+
+    const ancestors = new Set();
+    const up = (ev.parentIds || []).slice();
+    while (up.length) {
+      const id = up.pop();
+      if (ancestors.has(id) || !byId[id]) continue;
+      ancestors.add(id);
+      up.push.apply(up, byId[id].parentIds || []);
+    }
+    const children = childIndex(TL.events);
+    const descendants = new Set();
+    const down = (children[eventId] || []).slice();
+    while (down.length) {
+      const id = down.pop();
+      if (descendants.has(id) || byId[id].tick > cutoff) continue;
+      descendants.add(id);
+      down.push.apply(down, children[id] || []);
+    }
+    const sortedIds = (set) => Array.from(set).sort((a, b) => a - b);
+    const descendantEvents = sortedIds(descendants).map((id) => byId[id]);
+
+    const downstreamEffects = [];
+    descendantEvents.forEach((d) => (d.effects || []).forEach((effect) => {
+      downstreamEffects.push({ eventId: d.id, eventKind: d.kind, effect: effect });
+    }));
+    const totals = {};
+    [{ eventId: ev.id, effect: null }].concat(downstreamEffects).forEach(function (row) {
+      const list = row.effect ? [row.effect] : (ev.effects || []);
+      list.forEach((effect) => {
+        if (effect.delta == null) return;
+        const key = [effect.type, effect.target, effect.metric, effect.unit].join(" ");
+        const total = totals[key] || (totals[key] = {
+          type: effect.type, target: effect.target, metric: effect.metric, unit: effect.unit, delta: 0, events: []
+        });
+        total.delta = roundEffect(effect.metric, total.delta + effect.delta);
+        if (total.events.indexOf(row.eventId) < 0) total.events.push(row.eventId);
+      });
+    });
+    const cumulativeTotals = Object.keys(totals).sort().map((k) => {
+      totals[k].events.sort((a, b) => a - b);
+      return totals[k];
+    });
+
+    this._emit({
+      type: "eventImpact", tl: TL.id, eventId: eventId, horizon: horizon,
+      event: eventSummary(ev),
+      causes: (ev.causes || []).map((cause) => {
+        const parent = byId[cause.eventId];
+        return Object.assign({}, cause, parent ? { kind: parent.kind, tick: parent.tick, headline: parent.headline } : {});
+      }),
+      ancestors: sortedIds(ancestors).map((id) => eventSummary(byId[id])),
+      descendants: descendantEvents.map(eventSummary),
+      immediateEffects: (ev.effects || []).slice(),
+      downstreamEffects: downstreamEffects,
+      cumulativeTotals: cumulativeTotals,
+      horizonDiff: this._horizonDiff(TL, ev, horizon)
+    });
+  };
+
+  // Same refusals as the bridge; otherwise fork minus prime at one aligned tick, which in
+  // the mock covers the per-nation stats it keeps.
+  FakeEngine.prototype._horizonDiff = function (TL, ev, horizon) {
+    if (TL.id === "A") return { available: false, reason: "Prime has no separate baseline; fork the timeline for comparison." };
+    if (horizon == null) return { available: false, reason: "A tick horizon is required for an aligned fork comparison." };
+    const endpoint = ev.tick + horizon;
+    if (endpoint < TL.forkTick) return { available: false, reason: "The requested horizon ends before this fork's divergence point." };
+    const availableTick = Math.min(this.A.tick, TL.tick);
+    if (endpoint > availableTick) return { available: false, reason: "Aligned histories are only available through tick " + availableTick + "." };
+    const prime = this.A.history[endpoint], fork = TL.history[endpoint];
+    if (!prime || !fork) return { available: false, reason: "Aligned histories are only available through tick " + availableTick + "." };
+    const diff = {}, effects = [];
+    Object.keys(Object.assign({}, prime.stats, fork.stats)).sort().forEach((code) => {
+      const a = prime.stats[code], b = fork.stats[code];
+      if (!a || !b) {
+        effects.push({ type: "structural", target: code, metric: a ? "absent in fork" : "only in fork", delta: null, before: null, after: null, unit: "" });
+        return;
+      }
+      diff[code] = {};
+      EFFECT_METRICS.forEach((metric) => {
+        const delta = roundEffect(metric, b[metric] - a[metric]);
+        if (!delta) return;
+        diff[code][metric] = [roundEffect(metric, a[metric]), roundEffect(metric, b[metric])];
+        effects.push({ type: "stat", target: code, metric: metric, delta: delta, before: roundEffect(metric, a[metric]), after: roundEffect(metric, b[metric]), unit: "" });
+      });
+    });
+    return {
+      available: true, basis: "alignedFork", tick: endpoint,
+      scope: "Whole-world fork minus prime difference; not organic-event suppression.",
+      diff: diff, effects: effects
+    };
+  };
+
+  FakeEngine.prototype._countryChartEvents = function (cmd) {
+    const TL = this._timelineFor(cmd.tl);
+    const code = String(cmd.code);
+    const startTick = Math.round(Number(cmd.startTick)), endTick = Math.round(Number(cmd.endTick));
+    if (!(startTick >= -1) || !(endTick <= TL.tick) || endTick < startTick) {
+      this._emit({ type: "toast", text: "chart event interval is outside this timeline", tone: "warn" });
+      return;
+    }
+    const matched = TL.events.filter((e) => involves(e, code) && e.tick > startTick && e.tick <= endTick);
+    matched.sort((a, b) => b.severity - a.severity || b.tick - a.tick || b.id - a.id);
+    this._emit({
+      type: "countryChartEvents", tl: TL.id, code: code, startTick: startTick, endTick: endTick,
+      total: matched.length, events: matched.slice(0, 6).map(eventSummary)
+    });
+  };
+
+  // The engine's archive rules (meddler/engine/annals.py), applied to this timeline's events.
+  FakeEngine.prototype._annals = function (cmd) {
+    const TL = this._timelineFor(cmd.tl);
+    const country = cmd.country && cmd.country !== "ALL" ? cmd.country : null;
+    const tick = cmd.tick != null ? clamp(Math.round(Number(cmd.tick)), 0, TL.tick)
+      : (this.scrubbed && TL === this.A && this.scrubTick != null ? this.scrubTick : TL.tick);
+    const log = TL.events.filter((e) => e.tick <= tick);
+
+    const major = log.filter((e) => e.severity >= 1 && involves(e, country))
+      .sort((a, b) => a.tick - b.tick || a.id - b.id);
+    const eras = [];
+    let window = [], start = major.length ? major[0].tick : 0;
+    const closeEra = () => {
+      const counts = {};
+      let dominant = null;
+      window.forEach((e) => {
+        counts[e.kind] = (counts[e.kind] || 0) + 1;
+        if (dominant == null || counts[e.kind] > counts[dominant]) dominant = e.kind;
+      });
+      eras.push({ startTick: start, endTick: window[window.length - 1].tick, eventCount: window.length, dominantKind: dominant });
+    };
+    major.forEach((e) => {
+      window.push(e);
+      if (e.severity >= 2) { closeEra(); window = []; start = e.tick; }
+    });
+    if (window.length) closeEra();
+
+    // A war ends at the first later PEACE either belligerent makes (the engine's own rule).
+    const wars = log.filter((e) => e.kind === "WAR_DECLARED" && e.country2 && involves(e, country)).map((e) => {
+      const end = log.find((p) => p.tick > e.tick && (p.kind === "PEACE" || p.kind === "INTERVENE_PEACE") &&
+        (p.country === e.country || p.country === e.country2));
+      return {
+        aggressor: e.country, defender: e.country2, startTick: e.tick,
+        endTick: end ? end.tick : null, ticks: end ? end.tick - e.tick : null,
+        outcome: end ? "peace" : "ongoing"
+      };
+    });
+
+    const records = {};
+    log.forEach((e) => {
+      if (e.kind !== "INFLATION_CRISIS" || !involves(e, country) || typeof e.payload.inflation !== "number") return;
+      if (!records.worstInflation || e.payload.inflation > records.worstInflation.value) {
+        records.worstInflation = { country: e.country, tick: e.tick, value: e.payload.inflation };
+      }
+    });
+    wars.forEach((w) => {
+      if (w.ticks == null) return;
+      if (!records.longestWar || w.ticks > records.longestWar.ticks) {
+        records.longestWar = { aggressor: w.aggressor, defender: w.defender, startTick: w.startTick, endTick: w.endTick, ticks: w.ticks };
+      }
+    });
+    const coups = {};
+    log.forEach((e) => { if (e.kind === "COUP" && involves(e, country)) coups[e.country] = (coups[e.country] || 0) + 1; });
+    Object.keys(coups).forEach((code) => {
+      if (!records.mostCoups || coups[code] > records.mostCoups.count) records.mostCoups = { country: code, count: coups[code] };
+    });
+
+    this._emit({
+      type: "annalsData", tl: TL.id, tick: tick, country: country, eras: eras, wars: wars, records: records,
+      majorEvents: major.slice(-ANNALS_MAJOR_EVENT_LIMIT).map((e) => ({
+        id: e.id, tick: e.tick, kind: e.kind, severity: e.severity, country: e.country,
+        country2: e.country2 || null, intervention: e.intervention, headline: e.headline
+      })),
+      majorEventCount: major.length
+    });
+  };
+
+  // Ranked by recorded counts over the last ANNALS_IMPACT_WINDOW_TICKS, as the bridge does.
+  FakeEngine.prototype._annalsImpact = function (cmd) {
+    const TL = this._timelineFor(cmd.tl);
+    const startTick = Math.max(-1, TL.tick - ANNALS_IMPACT_WINDOW_TICKS);
+    const inWindow = TL.events.filter((e) => e.tick > startTick && e.tick <= TL.tick);
+    const byId = {};
+    inWindow.forEach((e) => { byId[e.id] = e; });
+    const children = childIndex(inWindow);
+    const rows = [];
+    inWindow.forEach((e) => {
+      const direct = (children[e.id] || []).filter((id) => byId[id]);
+      if (!direct.length) return;
+      const seen = new Set();
+      let generations = 0;
+      const pending = direct.slice().reverse().map((id) => [id, 1]);
+      while (pending.length) {
+        const item = pending.pop();
+        if (seen.has(item[0])) continue;
+        seen.add(item[0]);
+        generations = Math.max(generations, item[1]);
+        (children[item[0]] || []).slice().reverse().forEach((id) => pending.push([id, item[1] + 1]));
+      }
+      const family = [e].concat(Array.from(seen).map((id) => byId[id]));
+      const affected = new Set();
+      family.forEach((x) => { if (x.country) affected.add(x.country); if (x.country2) affected.add(x.country2); });
+      rows.push({
+        e: e, directChildren: direct.length, descendants: seen.size, generations: generations,
+        affectedCountries: Array.from(affected).sort(),
+        recordedEffects: family.reduce((sum, x) => sum + (x.effects || []).length, 0),
+        crisisDescendants: Array.from(seen).filter((id) => byId[id].severity >= 2).length,
+        lastDescendantTick: Array.from(seen).reduce((t, id) => Math.max(t, byId[id].tick), e.tick),
+        children: direct.slice(0, 6)
+      });
+    });
+    const fields = {
+      descendants: ["descendants", "directChildren", "recordedEffects", "affectedCountries"],
+      children: ["directChildren", "descendants", "recordedEffects", "affectedCountries"],
+      effects: ["recordedEffects", "descendants", "directChildren", "affectedCountries"],
+      countries: ["affectedCountries", "descendants", "directChildren", "recordedEffects"]
+    };
+    const sortBy = fields[cmd.sortBy] ? cmd.sortBy : "descendants";
+    const value = (row, field) => field === "affectedCountries" ? row.affectedCountries.length : row[field];
+    rows.sort((a, b) => {
+      for (const field of fields[sortBy]) {
+        const diff = value(b, field) - value(a, field);
+        if (diff) return diff;
+      }
+      return b.e.severity - a.e.severity || a.e.id - b.e.id;
+    });
+    const limit = Math.max(1, Math.min(Math.round(Number(cmd.limit != null ? cmd.limit : 30)) || 30, 100));
+    this._emit({
+      type: "annalsImpact", tl: TL.id, tick: TL.tick, sortBy: sortBy, eventCount: TL.events.length,
+      scope: { startTick: Math.max(0, startTick + 1), endTick: TL.tick, rankedEvents: inWindow.length, complete: startTick < 0 },
+      leaders: rows.slice(0, limit).map((row) => ({
+        event: eventSummary(row.e), directChildren: row.directChildren, descendants: row.descendants,
+        generations: row.generations, affectedCountries: row.affectedCountries,
+        recordedEffects: row.recordedEffects, crisisDescendants: row.crisisDescendants,
+        lastDescendantTick: row.lastDescendantTick,
+        children: row.children.map((id) => eventSummary(byId[id]))
+      }))
+    });
+  };
+
+  // Known keys whose value has the same JSON type as the default; unknown keys are ignored.
+  FakeEngine.prototype._applySettings = function (incoming) {
+    const changed = [];
+    Object.keys(incoming || {}).forEach((key) => {
+      if (!Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, key)) return;
+      const current = DEFAULT_SETTINGS[key], value = incoming[key];
+      const ok = Array.isArray(current) ? Array.isArray(value)
+        : typeof current === "number" ? (typeof value === "number" && isFinite(value) &&
+          (Number.isInteger(current) ? Number.isInteger(value) : true))
+        : typeof value === typeof current;
+      if (!ok) return;
+      if (JSON.stringify(this.settings[key]) !== JSON.stringify(value)) changed.push(key);
+      this.settings[key] = Array.isArray(value) ? value.slice() : value;
+    });
+    return changed;
+  };
+  FakeEngine.prototype._updateSettings = function (incoming) {
+    const changed = this._applySettings(incoming);
+    this._emit({
+      type: "settingsAck", settings: JSON.parse(JSON.stringify(this.settings)),
+      restartRequired: changed.filter((key) => RESTART_REQUIRED_SETTINGS.indexOf(key) >= 0)
+    });
+  };
+
+  // Genesis again: forks dissolve, history is discarded, the clock keeps its state, and the
+  // reply is the full hello/status/snapshot handshake. The mock always founds its eight nations.
+  FakeEngine.prototype._newWorld = function (cmd) {
+    const running = this.running;
+    this._stopTimer();
+    if (cmd.settings) this._applySettings(cmd.settings);
+    this._genesis(cmd.seed != null ? Number(cmd.seed) : this.seed);
+    this._warmUp();
+    this._emit(this._helloMsg());
+    this._setRunning(running);
+    this._emit(this._snapshotMsg(this.A.tick));
   };
 
   window.MeddlerEngine = {
