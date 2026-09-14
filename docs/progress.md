@@ -1555,3 +1555,70 @@ query is fastest or tied in all 16 cases, and every shape returned the same ids.
 the log across signatures, windows, directions and exclusions. It also counts SQLite VM steps
 for a full-history lookup; the old query fails that bound by a wide margin. The golden master
 is byte-identical.
+
+## 2026-09-13 — Departed countries: god mode, the roster cap, and short history reads
+
+Two of the items left open above are now closed, along with a slow read measured while checking
+an older indexing idea. The god-mode fix also covers the direct edits, which had the same gap.
+
+**God mode refuses a departed country.** `god.intervene` raises `InterventionError` ("XYZ
+is no longer in the world") when either target has been annexed or dissolved. So do
+`god_edit`, `god_relation` and `god_peace`, which had the same gap. The check runs against the
+world being acted on, so a fork taken before an annexation may still target that country. The
+bridge needed no new code: `_intervene` already drops the fork and answers with a warning toast,
+and `handle` does the same for the direct edits. The client never offered these countries in
+the first place, because the god-mode target grid lists only codes present in the focused
+timeline's stats (`countryGridHTML`), and `all_stats` is built from `active_countries`.
+
+**A departed country no longer holds a secession slot.** `_secede` compared the full roster
+with `max_countries`, so each annexation permanently used up a slot. Nothing is sized by the
+cap. Client colours key off the roster ordinal and cycle through a second palette past the
+first eight. Placement already used the living count. The cap now counts living countries, and
+the new name and code must still differ from every country's, departed ones included.
+
+**Short tick windows read through the tick index.** `events_between` and
+`events_of_kinds_between` bound each segment by id, and a segment's ids cover its whole branch,
+so the planner walked every event in the branch whatever the tick window. On seed 1337 at
+t1000 with default settings (116k events), the bridge's one-tick chronicle read took 36 ms per
+frame. A ten-tick read of the globe's three shipment kinds took about 40 ms. Forcing
+`events_tick` cut those to 0.8 ms and 1.9 ms. The two plans tie near 300 ticks, and past that
+the id sort makes the index slower: 0.25 s against 0.58 s for the whole history. So the hint applies only
+to windows of 100 ticks or fewer, and the annals ranking's 500-tick pass keeps the old plan.
+Every window compared returned the same ids under both plans.
+`tests/unit/test_tick_window_reads.py` checks results against a scan of the log on both sides
+of the threshold and across a fork's two segments. It also checks that a short read costs the
+same number of SQLite VM steps after the history doubles. Without the hint that count doubled
+with the log, about four steps per event.
+
+**Verified.** Every new test was first run against the unfixed code and failed there: eight
+for god mode and the roster cap, and the cost test for the tick index. The golden master
+passes unchanged with all three changes applied. mypy is clean on the engine and the bridge.
+
+**The sixteen sites.** The audit's full list of sixteen was never written down. The notes above
+name ten of them. Verdicts on those ten:
+- `production.py` and `fiscal.py`: guarded, since both iterate `living_countries()`.
+- `diplomacy._propagation`, `_strain`, `politics._break_alliance`: safe by precondition.
+  Annexation removes the country from its bloc.
+- `politics.run` path 4 (`occupied_by`): safe by precondition. Annexation passes or ends the
+  occupations the annexed country held.
+- `tariffs._repeals`, `_retaliation`: safe by precondition. Annexation drops every tariff and
+  embargo that names the country.
+- Shipments in `logistics.py`: deliberate. See below.
+- God-mode targets: guarded, as described above.
+
+Two preconditions were checked rather than assumed. No engine code ever assigns `DISSOLVED`,
+so every dissolved-only path is unreachable. And annexation leaves no departed code in any
+`at_war_with`: only an `OCCUPIED` country can be annexed, occupation clears both sides' war
+lists, and `WAR_DECLARED` does nothing unless both sides are `ACTIVE`. The other six sites
+were never named, so they have no individual verdict. If any of them loops over the roster, the
+source scan in `test_living_countries.py` would catch it. It cannot catch one that reads a
+country code stored in another structure, the way blocs and tariffs did.
+
+**Shipments stay deliberate.** The rationale is in `logistics.run` and in the section above.
+Trade dispatches only between `ACTIVE` countries, including relief shipments, and an annexation
+needs at least ninety ticks of occupation first, which is far longer than any transit.
+
+**Retraction check.** No published text (README, CHANGELOG, `docs/` outside this log, `web/`)
+claims that particular crisis classes never fire. The "six crisis classes fired zero times"
+line above was a measurement on the seeds sampled at the time, and the 2026-09-11 entry already
+records that five of them now fire.
