@@ -106,6 +106,19 @@ def test_secede_fizzles_when_the_roster_is_full() -> None:
     assert len(tl.world.countries) == tl.world.settings.max_countries
 
 
+def test_a_departed_country_does_not_hold_a_roster_slot() -> None:
+    tl = _timeline()
+    tl.world.settings.max_countries = len(tl.world.countries)
+    parent = _largest(tl.world)
+    gone = next(c for c in tl.world.countries if c.code != parent)
+    gone.status = CountryStatus.ANNEXED
+    event = god.intervene(tl.world, tl.rng, kind="INTERVENE_SECEDE", country=parent)
+    assert event.payload["seceded"] == 1, event.payload.get("fizzle_reason")
+    assert len(tl.world.living_countries()) == tl.world.settings.max_countries
+    # The departed country keeps its entry, so the child's code must still differ from it.
+    assert event.payload["new_country_code"] != gone.code
+
+
 def test_the_new_country_lives_through_the_tick_loop() -> None:
     tl = _timeline()
     event = god.intervene(tl.world, tl.rng, kind="INTERVENE_SECEDE", country=_largest(tl.world))

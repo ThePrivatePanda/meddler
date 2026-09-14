@@ -33,7 +33,7 @@ ALLOWED_RAW_READS: dict[tuple[str, str], str] = {
     ("diff.py", "diff"): "compares two worlds' full records, including who left",
     ("diff.py", "impact_diff"): "compares two worlds' full records, including who left",
     ("systems/secession.py", "_choose_homeland"): "a departed country's land is still taken",
-    ("systems/secession.py", "_secede"): "roster cap and name/code uniqueness span every country",
+    ("systems/secession.py", "_secede"): "a new name and code must differ from every country's, departed too",
     ("systems/secession.py", "_apply"): "appends the new country to the roster",
     ("timeline.py", "_aux_state"): "snapshot state covers every country so a restore is exact",
     ("timeline.py", "_apply_aux_state"): "restores that snapshot state",

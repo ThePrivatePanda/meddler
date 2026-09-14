@@ -9,7 +9,7 @@ country the live tick created.
 Placement keeps the no-overlap invariant. A parent that holds conquered territory lets the
 farthest of those lands go (a former nation reasserting itself); otherwise a new capital is
 sampled near the parent's and must clear the current minimum separation from every capital
-and territory marker. If there is no room, or the roster is at `max_countries`, or the
+and territory marker. If there is no room, or `max_countries` are in the world, or the
 parent is too small or not ACTIVE, the secession fizzles: the event and its declarative
 stability hit stand, but no country is created (`payload["seceded"] == 0`).
 
@@ -172,7 +172,11 @@ def _secede(world: World, rng: Rng, event: Event) -> None:
     if parent.population < config.SECESSION_MIN_PARENT_POPULATION:
         _fizzle(event, "parent too small")
         return
-    if len(world.countries) >= world.settings.max_countries:
+    # The cap is on countries in the world. An annexed country keeps its roster entry for
+    # replay and the client's stable ordinals, but it holds no slot: nothing is sized by
+    # max_countries, colours fall back to a cycling palette past the fixed set, and the
+    # name/code uniqueness below still spans the whole roster.
+    if _live_count(world) >= world.settings.max_countries:
         _fizzle(event, "roster full")
         return
     homeland = _choose_homeland(world, rng, parent)
