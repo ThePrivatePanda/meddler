@@ -13,6 +13,7 @@ import contextlib
 import json
 import logging
 import os
+import signal
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
@@ -215,6 +216,12 @@ def make_handler(seed: int) -> Callable[[ServerConnection], Awaitable[None]]:
 async def serve_forever(seed: int, host: str = HOST, port: int = PORT) -> None:
     runtime = ServerRuntime(seed)
     await runtime.start()
+    # Ctrl-C already unwinds through the `finally` below. SIGTERM (`kill`, `timeout`, a
+    # service manager) would otherwise end the process without closing the history file.
+    loop = asyncio.get_running_loop()
+    stopped = asyncio.Event()
+    with contextlib.suppress(NotImplementedError, RuntimeError):
+        loop.add_signal_handler(signal.SIGTERM, stopped.set)
     try:
         async with serve(runtime.handle, host, port, process_request=_process_request):
             url = f"http://{host}:{port}/"
@@ -227,8 +234,10 @@ async def serve_forever(seed: int, host: str = HOST, port: int = PORT) -> None:
                 WS_PATH,
                 seed,
             )
-            await asyncio.Future()
+            await stopped.wait()
     finally:
+        with contextlib.suppress(NotImplementedError, RuntimeError):
+            loop.remove_signal_handler(signal.SIGTERM)
         await runtime.close()
 
 

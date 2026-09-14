@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import errno
+import signal
 import socket
 import sys
 import threading
@@ -33,19 +34,33 @@ def _run_headless(seed: int, ticks: int, trace_id: int | None) -> int:
     Line format (§3.6): ``t0412 [ELB] Bread riots erupt…``. Events whose kind has no
     template (ambient bookkeeping) are skipped. If `trace_id` is given, an ancestry tree
     for that event is printed after the run."""
+    # SIGTERM (`kill`, `timeout`) would end the process without closing the history file;
+    # raising SystemExit instead unwinds through the `finally` below.
+    previous = None
+    if threading.current_thread() is threading.main_thread():
+        previous = signal.signal(signal.SIGTERM, _exit_on_sigterm)
     world = generate_world(seed, WorldSettings())
-    rng = Rng(seed)
-    for _ in range(ticks):
-        _, events = tickloop.tick(world, rng)
-        for event in events:
-            if event.kind not in TEMPLATES:
-                continue
-            code = event.country or "---"
-            print(f"t{event.tick:04d} [{code}] {render(event, world)}")
+    try:
+        rng = Rng(seed)
+        for _ in range(ticks):
+            _, events = tickloop.tick(world, rng)
+            for event in events:
+                if event.kind not in TEMPLATES:
+                    continue
+                code = event.country or "---"
+                print(f"t{event.tick:04d} [{code}] {render(event, world)}")
 
-    if trace_id is not None:
-        _print_trace(world, trace_id)
-    return 0
+        if trace_id is not None:
+            _print_trace(world, trace_id)
+        return 0
+    finally:
+        world.log.close()
+        if previous is not None:
+            signal.signal(signal.SIGTERM, previous)
+
+
+def _exit_on_sigterm(signum: int, frame: object) -> None:
+    raise SystemExit(128 + signum)
 
 
 def _print_trace(world: World, trace_id: int) -> None:

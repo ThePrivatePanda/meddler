@@ -226,6 +226,43 @@ def _cleanup_store(connection: sqlite3.Connection, path: str) -> None:
             os.remove(candidate)
 
 
+_STORE_PREFIX = "meddler-history-"
+
+
+def _remove_orphaned_stores(directory: str) -> None:
+    """Delete stores left behind by processes that no longer exist.
+
+    The finalizer that removes a store cannot run when its process is killed (SIGKILL, an
+    out-of-memory kill, a timeout), and stores reach gigabytes in a RAM-backed /tmp. Each
+    store's name carries its owner's pid, so the next store created in the same directory
+    reclaims them. A reused pid only delays reclaiming an orphan until that process exits;
+    it can never remove a live store, because a live owner always answers ``kill(pid, 0)``.
+    Forks and snapshots share their creator's store in-process, so the pid covers them.
+    Old names without a pid have no knowable owner and are left alone. POSIX only:
+    ``os.kill`` on Windows terminates the process rather than probing it.
+    """
+    if os.name != "posix":
+        return
+    own = os.getpid()
+    with os.scandir(directory) as entries:
+        names = [entry.name for entry in entries if entry.name.startswith(_STORE_PREFIX)]
+    for name in names:
+        stem = name.removesuffix("-wal").removesuffix("-shm")
+        pid_text, separator, _ = stem.removeprefix(_STORE_PREFIX).partition("-")
+        if not (separator and stem.endswith(".sqlite3") and pid_text.isdigit()):
+            continue
+        pid = int(pid_text)
+        if pid == own or pid <= 0:
+            continue
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            with contextlib.suppress(OSError):
+                os.remove(os.path.join(directory, name))
+        except OSError:
+            continue  # PermissionError: alive, owned by another user
+
+
 #: Widest tick window read through the `events_tick` index rather than the primary key.
 #: A segment's id bounds span its whole branch, so the unhinted plan walks every event in
 #: the branch whatever the window; the tick index reads only the window, then sorts it by
@@ -246,8 +283,13 @@ class _HistoryStore:
     """One file-backed SQLite database shared by prime, snapshots, and fork views."""
 
     def __init__(self) -> None:
-        descriptor, path = tempfile.mkstemp(prefix="meddler-history-", suffix=".sqlite3")
+        descriptor, path = tempfile.mkstemp(
+            prefix=f"{_STORE_PREFIX}{os.getpid()}-", suffix=".sqlite3"
+        )
         os.close(descriptor)
+        # Best effort: reclaiming another run's leftovers must never stop this one starting.
+        with contextlib.suppress(Exception):
+            _remove_orphaned_stores(os.path.dirname(path))
         self.path = path
         self.connection = sqlite3.connect(path, isolation_level=None)
         self.connection.row_factory = sqlite3.Row

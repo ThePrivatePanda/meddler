@@ -1905,3 +1905,25 @@ annexed destinations are written off by `logistics._arrive` with the exporter st
 seed 3 has 140 of them. That is cargo already at sea when annexation lands, plus a fleet that
 keeps sailing to a country for its whole transit time. Whether paying for undelivered cargo
 at that volume is acceptable has not been examined.
+
+
+## Tooling — abandoned history stores are reclaimed (2026-09-14)
+
+A history store is removed only by a `weakref.finalize` callback, and that never runs when
+the process is killed. Timed-out test and simulation runs left 91 stores, 11.4 GiB, in a
+RAM-backed `/tmp` and the machine ran out of memory.
+
+- A store's name now carries its owner's pid (`meddler-history-<pid>-XXXX.sqlite3`), and
+  creating a store removes every store, `-wal` and `-shm` in that directory whose pid no longer
+  exists. `kill(pid, 0)` decides this. A reused pid only delays reclaiming an orphan, and a live
+  owner always answers, so the sweep cannot remove a live store. Forks and snapshots share
+  their creator's store in-process. Old pid-less names have no knowable owner and are left
+  alone. The sweep is POSIX-only, because `os.kill` terminates on Windows, and failing it never
+  stops a store from opening.
+- `meddler serve` closes its history on SIGTERM as well as Ctrl-C. `meddler run` closes its
+  history when it finishes and on SIGTERM.
+- Rejected: unlinking the database after opening it. Probed on 2026-09-14, writes continued, but
+  `-wal` and `-shm` stayed on disk by name, and those hold the uncheckpointed bulk.
+- No new setting. The store follows `TMPDIR` like any temporary file, and the README says so.
+- Determinism: only the file name changed. The event stream and RNG never see the path, so
+  the golden master is not affected.

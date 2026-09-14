@@ -30,6 +30,9 @@ bridge protocol may still change between minor releases.
   of the run.
 - Short history reads (the chronicle frame, shipment history) go through the tick index, and a
   cause lookup no longer stalls on a long history (3.3 s to 0.04 s at one measured tick).
+- A killed run no longer leaves its history database behind: each new store removes the stores
+  of processes that no longer exist, and `meddler serve` and `meddler run` close theirs on
+  SIGTERM.
 
 ### Web UI
 

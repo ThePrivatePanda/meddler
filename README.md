@@ -127,7 +127,10 @@ golden master stable.
   the nation's founding temperament. What moves a country off its level from tick to tick is
   still events -- so a nation that wars, coups and shortages all happen to miss can sit almost
   unchanged for a long stretch, and in a quiet world more than one of them can.
-- History lives for one server run. There is no save/load across restarts yet.
+- History lives for one server run. There is no save/load across restarts yet. While it runs,
+  it is a SQLite file in the system temporary directory (`$TMPDIR`, usually `/tmp`), which can
+  reach gigabytes on a long run. Set `TMPDIR` to put it on a real disk. A killed process's file
+  is removed the next time Meddler starts.
 - Most interventions are declarative: stat and pool changes that cascade. War, peace, alliance,
   embargo, the infrastructure interventions and secession are structural -- they change who is
   at war, who is allied, what is blockaded, and, for secession, who exists. No country is ever
