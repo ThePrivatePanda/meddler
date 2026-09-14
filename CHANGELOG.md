@@ -7,6 +7,31 @@ bridge protocol may still change between minor releases.
 
 ## [Unreleased]
 
+### Engine
+
+- An annexed country leaves the world completely: it no longer produces, collects tax, votes or
+  receives queued events, and annexation detaches it from its bloc, tariffs, embargoes and
+  occupations.
+- God-mode interventions and direct edits refuse a country that has left the world.
+- A departed country no longer holds one of the `max_countries` slots a secession needs.
+- Assassinations now happen on their own in unstable countries; before, they could only follow
+  an occupation's resistance movement and almost never fired.
+- Short history reads (the chronicle frame, shipment history) go through the tick index, and a
+  cause lookup no longer stalls on a long history (3.3 s to 0.04 s at one measured tick).
+
+### Web UI
+
+- A speed or pause/resume key pressed while a previous request is still pending takes effect
+  instead of being dropped.
+- Region names on the globe stay clear of lanes, capitals and the globe's edge.
+- The in-browser mock engine opens the dossier, causal trace and fork views instead of leaving
+  them on a loading spinner.
+
+### Tooling
+
+- The linters (ruff, mypy, import-linter) are pinned, so CI judges the tree the same way a local
+  checkout does.
+
 ## [0.1.0] - 2026-09-11
 
 The first public release.
