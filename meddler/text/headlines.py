@@ -1297,6 +1297,20 @@ VARIANTS: dict[str, dict[str, list[str]]] = {
             "Raiders make no distinction off {country}: {count_word} cargo runs lost, relief among them.",
             "Aid for {country} is now a target; {recent_word} convoys lost this {season}.",
         ],
+        # A report can speak for one ship: a lone sinking is reported once it has waited.
+        "single": [
+            "A convoy bound for {country} is lost at sea; the war has found its shipping lanes.",
+            "{country} counts a cargo run that never came in; the lanes are no longer safe.",
+            "A ship carrying {commodity} to {country} goes down in the war zone.",
+            "Raiders sink a convoy on the lanes to {country}; insurers raise their rates.",
+            "Another convoy bound for {country} is sunk, {recent_word} lost this {season}.",
+        ],
+        "single_relief": [
+            "Relief bound for {country} goes to the bottom with the convoy carrying it.",
+            "Raiders sink an aid convoy on its way to {country}.",
+            "The relief ship {country} was waiting for will not arrive; the war sank it.",
+            "{country}'s aid convoy is lost at sea, and with it the relief {city} was promised.",
+        ],
     },
     "PEACE": {
         "divine": [
@@ -1519,7 +1533,10 @@ def _variant(event: Event, parent: Event | None) -> str | None:
         if event.is_intervention:
             return "divine"
     elif kind == "CONVOY_LOSSES":
-        if event.payload.get("relief") in (True, 1):
+        relief = event.payload.get("relief") in (True, 1)
+        if _payload_num(event, "count") == 1:
+            return "single_relief" if relief else "single"
+        if relief:
             return "relief"
     elif kind == "INTERVENE_SECEDE":
         if event.payload.get("seceded") in (False, 0):

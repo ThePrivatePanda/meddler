@@ -404,6 +404,32 @@ def test_convoy_losses_count_the_ships() -> None:
     assert all("3" not in line for line in lines)
 
 
+def test_a_single_lost_convoy_reads_in_the_singular() -> None:
+    # A lone sinking is reported once it has waited, so a report can speak for one ship.
+    # The plural lines ("more convoys are missing than arriving") would be false for it.
+    world = _fixture_world()
+    for relief, variant in ((0, "single"), (1, "single_relief")):
+        lines = set()
+        for i in range(20):
+            event = _event(
+                world,
+                "CONVOY_LOSSES",
+                event_id=i,
+                payload={"count": 1, "recent_total": 1, "commodity": "food",
+                         "commodities": "food", "relief": relief},
+            )
+            slots = headlines._slots(event, world, None)
+            allowed = {
+                headlines._finish(t.format(**slots))
+                for t in VARIANTS["CONVOY_LOSSES"][variant]
+                if template_fields(t) <= slots.keys()
+            }
+            line = render(event, world)
+            assert line in allowed, f"{variant}: {line!r}"
+            lines.add(line)
+        assert len(lines) >= 2
+
+
 def test_god_edits_read_as_the_meddlers_hand() -> None:
     world = _fixture_world()
     lines = {

@@ -391,9 +391,83 @@ def test_convoy_losses_only_reports_on_the_interval():
 
 def test_convoy_losses_never_reports_a_quiet_window():
     world, a, b, _ = _report_world()
-    _lose(world, 1, a, b)  # one loss only
+    _lose(world, 1, a, b)  # one loss only, and it has not waited long enough yet
 
     assert [e.kind for e in logistics.run(world, Rng(1))] == []
+
+
+def _reports_over(world, ticks, schedule=None):
+    """Run the system tick by tick, appending any scheduled sinkings first, as run() would."""
+    reports = []
+    for tick in range(1, ticks + 1):
+        world.tick = tick
+        for dest, origin in (schedule or {}).get(tick, ()):
+            _lose(world, tick, dest, origin)
+        reports += [e for e in logistics.run(world, Rng(1)) if e.kind == "CONVOY_LOSSES"]
+    return reports
+
+
+def test_a_lone_sinking_is_reported_once_it_has_waited():
+    """A destination that loses one convoy and never another must still reach the
+    chronicle. Under a two-loss minimum it never did: every unreported sinking measured on
+    seeds 1337 and 7 was exactly this case."""
+    world, a, b, _ = _report_world()
+    loss = _lose(world, 1, a, b)
+
+    reports = _reports_over(world, config.CONVOY_REPORT_INTERVAL_TICKS * 10)
+
+    assert len(reports) == 1
+    report = reports[0]
+    assert report.country == a
+    assert report.parent_ids == (loss.id,)
+    assert report.payload["count"] == 1
+    wait = report.tick - loss.tick
+    assert config.CONVOY_REPORT_MAX_WAIT_TICKS <= wait
+    assert wait < config.CONVOY_REPORT_MAX_WAIT_TICKS + config.CONVOY_REPORT_INTERVAL_TICKS
+    assert report.ledger == () and report.stat_deltas == ()
+
+
+def test_lost_relief_is_reported_at_the_next_interval():
+    world, a, b, _ = _report_world()
+    loss = _lose(world, 11, a, b, relief=True)
+
+    reports = [e for e in logistics.run(world, Rng(1)) if e.kind == "CONVOY_LOSSES"]
+
+    assert len(reports) == 1
+    assert reports[0].parent_ids == (loss.id,)
+    assert reports[0].payload["relief"] == 1
+
+
+def test_every_sinking_is_reported_exactly_once_and_on_time():
+    """Coverage by construction, over a mixed schedule of lone losses, drips and bursts
+    across three destinations: nothing is dropped, nothing is told twice, nothing waits
+    longer than the bound, and no destination gets two reports on one boundary."""
+    world, a, b, c = _report_world()
+    dests = (a, b, c)
+    schedule: dict[int, list[tuple[str, str]]] = {}
+    for i in range(45):
+        tick = 1 + (i * 37) % 420
+        dest = dests[(i * 7) % 3]
+        schedule.setdefault(tick, []).append((dest, dests[(dests.index(dest) + 1) % 3]))
+    for tick in (200, 201, 205):  # a burst on one harbour
+        schedule.setdefault(tick, []).append((b, a))
+    horizon = config.CONVOY_REPORT_MAX_WAIT_TICKS + config.CONVOY_REPORT_INTERVAL_TICKS
+    end = 420 + horizon
+
+    reports = _reports_over(world, end, schedule)
+
+    losses = [e for e in world.log.events_of_kinds_between(("SHIPMENT_LOST",), -1, end)]
+    assert len(losses) == 48
+    told: dict[int, list[int]] = {}
+    for report in reports:
+        for loss_id in report.parent_ids:
+            told.setdefault(loss_id, []).append(report.tick)
+    for loss in losses:
+        assert len(told.get(loss.id, [])) == 1, f"sinking at t{loss.tick} told {told.get(loss.id)}"
+        assert 0 <= told[loss.id][0] - loss.tick < horizon
+    boundaries = [(r.country, r.tick) for r in reports]
+    assert len(boundaries) == len(set(boundaries))
+    assert len(reports) < len(losses)  # clustered losses still share a line
 
 
 def test_convoy_losses_season_total_outlives_the_window():

@@ -140,11 +140,13 @@ SEA_INTERDICTION_P = 0.0015
 SHIPMENT_LOST_STABILITY_HIT = -1.5  # the dest loses expected relief; SHIPMENT_LOST's EventSpec
 # Convoy loss reporting (systems/logistics.py). One sunk ship is a fact, not news: a feed
 # that prints every sinking is a shipping manifest (34 of 393 lines on seed 7). Losses are
-# folded into a periodic per-destination report instead, on this cadence and only when the
-# window holds at least this many. Single losses still count toward the report's running
-# season total, they just do not trigger one on their own.
+# folded into a per-destination report instead, checked on this cadence. A destination's
+# unreported sinkings are reported once there are at least MIN_LOSSES of them, once relief is
+# among them, or once the oldest has waited MAX_WAIT ticks -- the last rule is what keeps a
+# lone sinking from ever going unreported (a sinking waits at most MAX_WAIT + INTERVAL - 1).
 CONVOY_REPORT_INTERVAL_TICKS = 12
 CONVOY_REPORT_MIN_LOSSES = 2
+CONVOY_REPORT_MAX_WAIT_TICKS = 24
 # Commodities flown by preference (high value per unit, low bulk) even absent an emergency.
 HIGH_VALUE_COMMODITIES = ("high_tech",)
 # Emergency relief: when the importer is famine-critical for a commodity AND the supplier's

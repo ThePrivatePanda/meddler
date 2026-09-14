@@ -309,27 +309,43 @@ structural.register_replay("SHIPMENT_LOST", _replay_lose)
 
 
 def _season_ticks(world: World) -> int:
-    """The trailing window a convoy report calls "this season" -- a literal quarter of the
-    year, never shorter than one reporting interval."""
-    return max(config.CONVOY_REPORT_INTERVAL_TICKS, world.settings.ticks_per_year // 4)
+    """The trailing window a convoy report looks back over and calls "this season" -- a
+    literal quarter of the year, never shorter than the longest a sinking can wait for its
+    report. That floor is what lets no sinking age out of the lookback unreported, whatever
+    the calendar."""
+    longest_wait = config.CONVOY_REPORT_MAX_WAIT_TICKS + config.CONVOY_REPORT_INTERVAL_TICKS
+    return max(longest_wait, world.settings.ticks_per_year // 4)
+
+
+def _is_news(world: World, unreported: list[Event]) -> bool:
+    """Whether a destination's unreported sinkings are due a report at this boundary.
+
+    A run of losses is news at once, and so is lost relief. Anything else waits
+    CONVOY_REPORT_MAX_WAIT_TICKS in case more follow and can share its line -- and is then
+    reported regardless, so a lone sinking can be delayed but never dropped."""
+    if len(unreported) >= config.CONVOY_REPORT_MIN_LOSSES:
+        return True
+    if any(loss.payload.get("relief") in (True, 1) for loss in unreported):
+        return True
+    oldest = min(loss.tick for loss in unreported)
+    return world.tick - oldest >= config.CONVOY_REPORT_MAX_WAIT_TICKS
 
 
 def _convoy_reports(world: World) -> list[Event]:
     """Report every sinking a destination has suffered SINCE ITS LAST REPORT.
 
-    A single sunk convoy is a fact; a run of them is news. SHIPMENT_LOST keeps carrying the
-    economic bite (its stability hit, its stranded money) and stays out of the feed; this is
-    what a reader sees.
+    SHIPMENT_LOST carries the economic bite (its stability hit, its stranded money) and
+    stays out of the feed; this is what a reader sees, and every sinking reaches one.
 
-    The count is anchored to the destination's own history, not to the calendar. Counting
-    only within the current window asks whether a harbour lost two ships in THESE twelve
-    ticks, which is a question about the clock rather than about the war -- so a steady drip
-    of one sinking per window answers no forever and is never reported at all. Measured on
-    two seeds, the mode is exactly one sinking per window (11 of 17 non-empty windows on one
-    seed, 9 of 10 on another), which left 44% and 82% of all sinkings permanently
-    unreportable. Counting since the last report instead lets a drip accumulate and surface
-    on its second ship, while a burst still reports no more than once per interval per
-    destination and the minimum still guarantees the plural the headline writer needs.
+    The count is anchored to the destination's own history, not to the calendar: a
+    clock-anchored window asked whether a harbour lost two ships in THESE twelve ticks, and a
+    drip of one per window answered no forever (44% and 82% of sinkings unreported on two
+    seeds). Counting since the last report fixed the drip but not the lone loss: a
+    destination that lost one convoy in a season never reached the two-loss minimum, which
+    still left 20-29% of sinkings unreported. `_is_news` closes that by construction. A
+    sinking at tick t that no earlier rule reported is still unreported at the first
+    boundary b >= t + MAX_WAIT, where b - t < MAX_WAIT + INTERVAL <= the lookback, so it is
+    both visible and due there. A destination still gets at most one report per interval.
 
     Derived entirely from the event log, so it needs no new World state and no replay
     handler: the report records no ledger and no stat_delta, which makes it a no-op for
@@ -367,7 +383,7 @@ def _convoy_reports(world: World) -> list[Event]:
     for dest in sorted(season_by_dest):  # stable order: the log is the only input
         since = reported_to.get(dest, season_start)
         unreported = [loss for loss in season_by_dest[dest] if loss.tick > since]
-        if len(unreported) < config.CONVOY_REPORT_MIN_LOSSES:
+        if not unreported or not _is_news(world, unreported):
             continue
         events.append(
             _convoy_report(world, dest, unreported, len(season_by_dest[dest]), since)
