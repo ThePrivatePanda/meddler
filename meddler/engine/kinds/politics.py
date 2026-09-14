@@ -307,9 +307,18 @@ register(
         severity=2,
         category=EventCategory.POLITICS,
         targets=1,
-        is_exogenous=False,
-        exogenous_base_p=0.0,
+        # Its only parent, RESISTANCE_MOVEMENT, is a depth-1 child of the rare
+        # OCCUPATION_BEGIN, so the 0.2 edge lands at 0.14 and fired well under once per
+        # 5000-tick seed. Also a small-p exogenous root, like PROPAGANDA_CAMPAIGN, so it is
+        # actually reachable; roughly a fifth of the COUP rate at drama 1.0. Found via the
+        # catalog coverage test.
+        is_exogenous=True,
+        exogenous_base_p=0.0015,
         is_intervention=False,
+        # Only in an unstable country: some country is below this on most ticks, so the gate
+        # makes the target plausible and the p keeps it sparse. Re-checked at fire time for
+        # the resistance edge too, the same gate SECESSION uses.
+        conditions=[Condition(stat="stability", op="<", value=20.0, target="primary")],
         stat_deltas={"stability": -4.0},
         consequences=[
             ConsequenceRule("LEADER_CHANGE", base_p=1.0, delay_min=1, delay_max=2, target="same"),
