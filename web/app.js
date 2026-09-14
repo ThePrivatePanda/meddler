@@ -114,7 +114,8 @@
     scrubFrame: null,
     scrubClientX: null,
     scrubQueuedTick: null,
-    speedQueued: null
+    speedQueued: null,
+    runningQueued: null
   };
   const focusTL = () => (S.focusId === "A" ? "A" : "B");
   const activeTimelineId = () => (S.focusId === "A" ? "A" : S.focusId);
@@ -191,6 +192,11 @@
       S.speedQueued = null;
       if (tps !== entry.command.tps) requestSpeed(tps);
     }
+    if (entry.key === "running" && S.runningQueued != null) {
+      const run = S.runningQueued;
+      S.runningQueued = null;
+      if (run !== (entry.command.cmd === "resume")) sendRunning(run);
+    }
     return entry;
   }
 
@@ -199,6 +205,7 @@
     S.pendingRequests = {};
     S.tracePending = null;
     S.speedQueued = null;
+    S.runningQueued = null;
     document.querySelectorAll("[data-pending-request]").forEach((node) => {
       node.disabled = false;
       node.classList.remove("is-pending");
@@ -3758,9 +3765,19 @@
   }
 
   // ---------- transport controls ----------
+  // A toggle pressed while a pause/resume is in flight flips the state that request is
+  // heading for (S.running is stale until its status lands); the result is sent once it does.
   function requestRunningToggle() {
-    const command = S.running ? "pause" : "resume";
-    sendCommand({ cmd: command }, command === "pause" ? "Pausing world…" : "Resuming world…", "running");
+    const pending = pendingByKey("running");
+    if (pending) {
+      const target = S.runningQueued != null ? S.runningQueued : pending.command.cmd === "resume";
+      S.runningQueued = !target;
+      return;
+    }
+    sendRunning(!S.running);
+  }
+  function sendRunning(run) {
+    sendCommand({ cmd: run ? "resume" : "pause" }, run ? "Resuming world…" : "Pausing world…", "running");
   }
   // A speed chosen while another setSpeed is in flight is held, not dropped: the latest
   // choice is sent once the pending one lands, so at most one is in flight and one waits.
