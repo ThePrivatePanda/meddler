@@ -21,6 +21,10 @@ bridge protocol may still change between minor releases.
 - A change of ruler moves where a country's stability settles, by the new leader's character,
   while pulling back toward the nation's own founding temperament, so countries wander without
   losing who they are. A revolution resets the temperament halfway toward that founding draw.
+- An occupied country can import food and receive famine relief, sized to cover the tribute its
+  occupier takes. Occupied countries used to be shut out of trade entirely, so a starving one
+  could never recover the stability that ends an occupation, and stayed occupied forever. They
+  still cannot export.
 - A drought or locust swarm takes at most a quarter of a country's food output. A fixed-size
   crop shock used to erase a small producer's farms for good, leaving it to starve for the rest
   of the run.
