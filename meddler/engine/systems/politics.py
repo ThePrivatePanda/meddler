@@ -98,8 +98,15 @@ def _replace_leader(world: World, rng: Rng, event: Event) -> None:
     event.payload["new_leader_traits"] = ",".join(new_traits)
     good = sum(1 for trait in new_traits if trait in config.LEADER_GOOD_TRAITS)
     bad = sum(1 for trait in new_traits if trait in config.LEADER_BAD_TRAITS)
+    # The traits ADD to a pull back toward genesis rather than replacing the old ruler's
+    # contribution: coups pick successors from unstable countries, so a term that replaced
+    # would be selected on, not averaged.
     _shift_base_stability(
-        event, country, (good - bad) * config.LEADER_TEMPERAMENT_TRAIT_SHIFT
+        event,
+        country,
+        (good - bad) * config.LEADER_TEMPERAMENT_TRAIT_SHIFT
+        + config.LEADER_TEMPERAMENT_REVERSION
+        * (country.genesis_stability - country.base_stability),
     )
 
 
@@ -116,6 +123,9 @@ def _shift_base_stability(event: Event, country: Country, requested: float) -> N
     before = country.base_stability
     after = max(0.0, min(100.0, before + requested))
     shift = after - before
+    # No log read may run between EventLog.append and this write: reads flush, and a flush
+    # persists the event without the key and marks it clean, so the write never reaches
+    # the store and a replay from it rebuilds the wrong temperament.
     event.payload["base_stability_shift"] = shift
     if shift == 0.0:
         return
@@ -142,17 +152,16 @@ def _replay_base_stability_shift(world: World, event: Event) -> None:
 
 def _revolution(world: World, rng: Rng, event: Event) -> None:
     """Structural handler for REVOLUTION: the temperament moves part of the way back to the
-    middle of the genesis range, a new social contract rather than a new ruler (the ruler
+    country's own genesis draw, a new social contract rather than a new ruler (the ruler
     is the LEADER_CHANGE child's job, and its traits shift the temperament again)."""
     if event.country is None:
         return
     country = world.country(event.country)
-    low, high = world.settings.starting_stability_range
-    midpoint = (low + high) / 2.0
     _shift_base_stability(
         event,
         country,
-        config.REVOLUTION_TEMPERAMENT_RESET_SHARE * (midpoint - country.base_stability),
+        config.REVOLUTION_TEMPERAMENT_RESET_SHARE
+        * (country.genesis_stability - country.base_stability),
     )
 
 

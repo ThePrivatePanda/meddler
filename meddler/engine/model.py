@@ -188,6 +188,10 @@ class Country:
     # setting behind it was doing no lasting work. Defaulted for the benefit of hand-built
     # test fixtures; worldgen and secession always pass it.
     base_stability: float = 50.0
+    # The genesis draw itself, kept after base_stability starts moving: the identity a
+    # changing temperament reverts toward (systems/politics.py) and a revolution resets
+    # toward. Never changes after birth, so snapshots carry it and no event needs to.
+    genesis_stability: float = 50.0
 
     # --- grain_* aliases (M10) ---
     # The food bucket's public face. Every pre-M10 consumer -- systems/thresholds.py's

@@ -316,8 +316,20 @@ GOD_EDIT_TEMPERAMENT_SHARE = 0.5
 LEADER_TEMPERAMENT_TRAIT_SHIFT = 3.0
 LEADER_GOOD_TRAITS = frozenset({"reformist", "technocrat"})
 LEADER_BAD_TRAITS = frozenset({"corrupt", "warhawk"})
+# Each handover also closes this share of the gap back to the country's genesis draw, so the
+# walk has a memory. Without it the shifts are a pure running sum: the trait term has sd
+# 3 x sqrt(6/7) = 2.78 (two distinct traits of eight), so after n handovers a temperament
+# has wandered sd 2.78 x sqrt(n) -- about 14 after 25, against a genesis range 45 wide --
+# and the most unstable countries, which change rulers most, lose their identity fastest.
+# With reversion k the gap follows d' = (1 - k) d + shift, whose stationary sd is
+# 2.78 / sqrt(1 - (1 - k)^2): k = 0.10 -> 6.4, 0.15 -> 5.3, 0.20 -> 4.6, 0.30 -> 3.9.
+# 0.15 keeps a nation within a few points of itself while one ruler still visibly moves
+# it (half of a shift survives about four handovers). Clamps and revolutions narrow it
+# further. It also decays a god edit's temperament share over later handovers.
+LEADER_TEMPERAMENT_REVERSION = 0.15
 # A revolution replaces the social contract rather than one ruler: the temperament moves
-# this share of the way toward the middle of the genesis range. That is the way off the
+# this share of the way back toward the country's own genesis draw (not the middle of the
+# range, which would make every nation that ever revolted alike). That is the way off the
 # bottom for a collapsed nation -- a coup cannot provide it, because coups only happen below
 # COUP_STABILITY_THRESHOLD and a coup-driven fall would rebuild a clamp attractor at zero.
 REVOLUTION_TEMPERAMENT_RESET_SHARE = 0.5

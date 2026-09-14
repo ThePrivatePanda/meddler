@@ -180,8 +180,20 @@ register(
             # so political collapse -- stability under 15 -- could split a country or
             # topple a ruler but never overturn the order. Threshold-emitted, this fires at
             # depth 1, so the spawn chance is 0.3 x cascade_decay.
+            #
+            # Fire-time gate on this edge only: a country that calmed back out of unrest
+            # during the delay does not overturn its order. Set at the UNREST line rather
+            # than SECESSION's 20, and kept off the REVOLUTION spec so the FAMINE edge stays
+            # ungated as §6.6.3 has it (a starving nation revolts wherever stability sits;
+            # seed 7's TAB sat at 27.5 for over 1,000 ticks with no food). Also makes the
+            # temperament reset (systems/politics.py) on this path a move from collapse.
             ConsequenceRule(
-                "REVOLUTION", base_p=0.3, delay_min=10, delay_max=40, target="same"
+                "REVOLUTION",
+                base_p=0.3,
+                delay_min=10,
+                delay_max=40,
+                target="same",
+                fire_conditions=[Condition(stat="stability", op="<", value=35.0, target="primary")],
             ),
         ],
         tags=frozenset({"politics", "war"}),
@@ -236,13 +248,6 @@ register(
         exogenous_base_p=0.0,
         is_intervention=False,
         stat_deltas={"stability": -8.0},
-        # Fire-time gate: a country that has calmed back out of unrest during the delay
-        # does not overturn its order. Set at the UNREST line rather than SECESSION's 20 so
-        # a famine-born revolution still lands in a nation that shortage and inflation park
-        # just above 20 (seed 7's TAB sat at 27.5 for over 1,000 ticks with no food).
-        # Also makes the temperament reset below (systems/politics.py) a move made only
-        # from genuine collapse.
-        conditions=[Condition(stat="stability", op="<", value=35.0, target="primary")],
         consequences=[
             ConsequenceRule("LEADER_CHANGE", base_p=1.0, delay_min=0, delay_max=2, target="same"),
             ConsequenceRule(

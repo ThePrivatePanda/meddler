@@ -94,7 +94,12 @@ class ConsequenceRule:
     # _resolve_target for the resolution (deterministic, no RNG: sorts by relation value).
     target: Literal["same", "foe", "ally", "random", "all_at_war", "worst_relation"]
     payload_template: dict[str, float | int | str] = field(default_factory=dict)
+    # Checked when the parent fires (whether the child is scheduled at all).
     conditions: list[Condition] = field(default_factory=list)
+    # Checked when the child comes due, for children scheduled by THIS edge only -- unlike
+    # the child spec's own conditions, which gate the kind whatever scheduled it. See
+    # systems/consequence.py.
+    fire_conditions: list[Condition] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

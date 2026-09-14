@@ -90,6 +90,9 @@ def _country_from_json(text: str) -> Country:
         currency_symbol=raw["currency_symbol"],
         stability=float(raw["stability"]),
         base_stability=float(raw["base_stability"]),
+        # Secessions recorded before the field existed carry no key; their child's
+        # temperament had never moved, so its base is its genesis.
+        genesis_stability=float(raw.get("genesis_stability", raw["base_stability"])),
         civil_rights=float(raw["civil_rights"]),
         press_freedom=float(raw["press_freedom"]),
         education=float(raw["education"]),
@@ -234,6 +237,10 @@ def _secede(world: World, rng: Rng, event: Event) -> None:
         # A seceding province is the same people: it keeps its parent's temperament even
         # though it starts calmer than the split it was born from.
         base_stability=parent.base_stability,
+        # ...and its parent's identity. The parent's drift away from genesis came from the
+        # parent's rulers; the province leaves them, so it reverts toward what the people
+        # were, not toward whatever the old regime had made of them at the split.
+        genesis_stability=parent.genesis_stability,
         civil_rights=parent.civil_rights,
         press_freedom=parent.press_freedom,
         education=parent.education,

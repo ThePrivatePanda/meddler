@@ -324,6 +324,7 @@ def _generate_country(
         currency_symbol=currency_symbol,
         stability=stability,
         base_stability=stability,
+        genesis_stability=stability,
         civil_rights=config.STARTING_CIVIL_RIGHTS,
         press_freedom=config.STARTING_PRESS_FREEDOM,
         education=config.STARTING_EDUCATION,

@@ -17,7 +17,7 @@ from meddler.engine import cascade, config, god, tickloop  # noqa: F401 -- popul
 from meddler.engine.events import ScheduleEntry
 from meddler.engine.model import WorldSettings
 from meddler.engine.rng import Rng
-from meddler.engine.systems import consequence, thresholds
+from meddler.engine.systems import consequence, secession, thresholds
 from meddler.engine.timeline import Multiverse, Timeline
 from meddler.engine.worldgen import generate_world
 
@@ -52,24 +52,43 @@ def test_political_collapse_reaches_revolution_without_any_famine():
     assert parent.kind == "CIVIL_WAR_RISK"
 
 
-def test_revolution_does_not_land_on_a_country_that_recovered_during_the_delay():
+def _revolutions_due_from(parent_kind: str, stability_when_due: float) -> list:
+    """Fire a real parent event, then queue a REVOLUTION child of it for a country whose
+    stability has moved to `stability_when_due` by the time the child comes due."""
     world = _world()
     country = world.countries[0]
-    country.stability = 60.0
+    country.stability = 5.0
+    parent = cascade.emit_event(
+        world, Rng(1), kind=parent_kind, primary=country.code, secondary=None,
+        parent_id=None, depth=0, is_intervention=False, payload={},
+    )
+    world.schedule.clear()  # only the hand-queued child below may fire
+    country.stability = stability_when_due
     world.schedule.append(
         ScheduleEntry(
             fire_tick=world.tick,
             schedule_seq=world.schedule_seq,
             child_kind="REVOLUTION",
-            parent_id=None,
-            parent_depth=0,
+            parent_id=parent.id,
+            parent_depth=parent.depth,
             primary=country.code,
             secondary=None,
             payload={},
         )
     )
     world.schedule_seq += 1
-    assert not [e for e in consequence.run(world, Rng(1)) if e.kind == "REVOLUTION"]
+    return [e for e in consequence.run(world, Rng(1)) if e.kind == "REVOLUTION"]
+
+
+def test_revolution_does_not_land_on_a_country_that_recovered_during_the_delay():
+    assert not _revolutions_due_from("CIVIL_WAR_RISK", 60.0)
+    assert _revolutions_due_from("CIVIL_WAR_RISK", 30.0), "still in unrest: it must land"
+
+
+def test_the_unrest_gate_is_on_the_civil_war_edge_only_so_famine_still_topples_the_calm():
+    """PROPOSAL §6.6.3's FAMINE -> REVOLUTION edge was ungated before the civil-war edge
+    existed; gating the REVOLUTION kind itself would have silently changed it."""
+    assert _revolutions_due_from("FAMINE", 60.0)
 
 
 def test_a_new_leaders_traits_shift_where_the_country_settles():
@@ -78,6 +97,7 @@ def test_a_new_leaders_traits_shift_where_the_country_settles():
         world = _world()
         country = world.countries[0]
         country.base_stability = 50.0
+        country.genesis_stability = 50.0  # at its identity, so only the traits move it
         event = cascade.emit_event(
             world, Rng(seed), kind="LEADER_CHANGE", primary=country.code, secondary=None,
             parent_id=None, depth=0, is_intervention=False, payload={},
@@ -94,20 +114,63 @@ def test_a_new_leaders_traits_shift_where_the_country_settles():
     assert any(s > 0 for s in shifts) and any(s < 0 for s in shifts), shifts
 
 
-def test_revolution_moves_the_temperament_toward_the_middle_of_the_genesis_range():
+def test_a_handover_pulls_a_drifted_temperament_back_toward_its_genesis_draw():
+    """The walk has a memory: without the pull, handover shifts are a running sum and a
+    country that changes rulers often forgets what it was."""
     world = _world()
     country = world.countries[0]
-    country.base_stability = 20.0
+    country.genesis_stability = 40.0
+    country.base_stability = 70.0
+    event = cascade.emit_event(
+        world, Rng(3), kind="LEADER_CHANGE", primary=country.code, secondary=None,
+        parent_id=None, depth=0, is_intervention=False, payload={},
+    )
+    good = sum(t in config.LEADER_GOOD_TRAITS for t in country.leader.traits)
+    bad = sum(t in config.LEADER_BAD_TRAITS for t in country.leader.traits)
+    expected = (good - bad) * config.LEADER_TEMPERAMENT_TRAIT_SHIFT + (
+        config.LEADER_TEMPERAMENT_REVERSION * (40.0 - 70.0)
+    )
+    assert event.payload["base_stability_shift"] == expected
+    assert country.genesis_stability == 40.0
+
+    # Over many handovers the gap stays bounded near the stationary spread instead of
+    # growing with the square root of the count (sd ~20 after 50 at no reversion).
+    gaps = []
+    for seed in range(200):
+        world = _world()
+        country = world.countries[0]
+        for step in range(50):
+            cascade.emit_event(
+                world, Rng(seed * 1000 + step), kind="LEADER_CHANGE", primary=country.code,
+                secondary=None, parent_id=None, depth=0, is_intervention=False, payload={},
+            )
+        gaps.append(country.base_stability - country.genesis_stability)
+    spread = (sum(g * g for g in gaps) / len(gaps)) ** 0.5
+    assert spread < 8.0, spread
+
+
+def test_revolution_moves_the_temperament_back_toward_the_countrys_own_genesis_draw():
+    world = _world()
+    country = world.countries[0]
+    country.genesis_stability = 30.0  # below the middle of the range, to tell them apart
+    country.base_stability = 10.0
     country.stability = 10.0
     cascade.emit_event(
         world, Rng(1), kind="REVOLUTION", primary=country.code, secondary=None,
         parent_id=None, depth=0, is_intervention=False, payload={},
     )
-    low, high = world.settings.starting_stability_range
-    midpoint = (low + high) / 2.0
-    assert country.base_stability == 20.0 + config.REVOLUTION_TEMPERAMENT_RESET_SHARE * (
-        midpoint - 20.0
+    assert country.base_stability == 10.0 + config.REVOLUTION_TEMPERAMENT_RESET_SHARE * (
+        30.0 - 10.0
     )
+
+
+def test_a_seceded_country_replays_with_its_genesis_draw():
+    world = _world()
+    country = world.countries[0]
+    country.genesis_stability = 41.5
+    country.base_stability = 63.0
+    rebuilt = secession._country_from_json(secession._country_to_json(country))
+    assert (rebuilt.genesis_stability, rebuilt.base_stability) == (41.5, 63.0)
 
 
 def test_world_at_and_a_fork_rebuild_a_temperament_moved_by_revolution_and_leader_change():
@@ -134,6 +197,12 @@ def test_world_at_and_a_fork_rebuild_a_temperament_moved_by_revolution_and_leade
     ]
     assert changes, "the revolution's LEADER_CHANGE child should have fired"
     assert live[tl.world.tick] != genesis_like
+
+    # Force every read below through the store. Replay returns a resident event when one is
+    # cached, so without this a shift written to the payload after the event was persisted
+    # (and never re-persisted) would still be seen and the check could not catch it.
+    tl.world.log.flush()
+    tl.world.log._cache.clear()
 
     for tick, expected in live.items():
         assert tl.world_at(tick).country(code).base_stability == expected, tick
