@@ -27,6 +27,13 @@ bridge protocol may still change between minor releases.
 - The in-browser mock engine opens the dossier, causal trace and fork views instead of leaving
   them on a loading spinner.
 
+### Chronicle
+
+- Every sunk convoy reaches the chronicle: a lone loss is reported once it has waited 24 ticks,
+  lost relief at the next report, so no sinking goes untold.
+- A god-rolled chaos intervention names what it became in words for every kind it can resolve
+  into.
+
 ### Tooling
 
 - The linters (ruff, mypy, import-linter) are pinned, so CI judges the tree the same way a local
