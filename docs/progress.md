@@ -1755,10 +1755,44 @@ raises the crisis rate needs a multi-seed comparison against an equally perturbe
   seed-7 countries starve permanently with relief never landing; that is production/relief.
 - Seed 7's coups concentrate there: a country pinned at 0 rolls every tick, and a corrupt or
   warhawk successor lifts the roll from 0.0014 to 0.0114, so each leader change can re-arm it.
-- The trait walk has no restoring force; over very long runs base_stability wanders toward the
-  clamps, with only REVOLUTION pulling back.
+- ~~The trait walk has no restoring force~~ -- corrected below.
 - The golden master drifts from t0584 on this branch and was not regenerated; the two-run
   determinism check passes, and `test_history_storage.py` still passes as pinned.
+
+### Correction (review of 9c11beb)
+
+Three things were wrong. (1) The trait walk had no memory: shifts were a running sum, sd
+2.78·√n (about 14 after 25 handovers), fastest in the unstable countries that change rulers
+most, and REVOLUTION reset toward the middle of the range, making revolted nations alike.
+`Country.genesis_stability` now keeps the draw (worldgen; a seceding child inherits its
+parent's, since the parent's drift came from rulers the province leaves; old secession
+payloads fall back to the child's base). A handover requests `trait_term + k·(genesis − base)`
+with `LEADER_TEMPERAMENT_REVERSION = 0.15`: the gap follows d' = (1−k)d + shift, stationary sd
+2.78/√(1−(1−k)²) = 5.3 (k 0.10 → 6.4, 0.20 → 4.6). REVOLUTION resets halfway toward genesis.
+The field never changes, so deep-copied snapshots carry it and no replay is needed. Side effect:
+each handover also decays 15% of a god edit's temperament share. (2) The `stability < 35` gate
+sat on the REVOLUTION spec, so it also gated the old FAMINE edge. Rule `conditions` are
+checked at schedule time, so `ConsequenceRule.fire_conditions` is new: consequence.run finds
+the scheduling edge from the parent's kind (reading the log only when some edge into that
+kind is gated) and checks it when the child comes due. Only CIVIL_WAR_RISK → REVOLUTION uses
+it; FAMINE is ungated again (test: a FAMINE-parented revolution at stability 60 lands). (3)
+The world_at/fork test now flushes and empties the event cache first. At this fixture's size
+that was not yet needed: 1631 events against CACHE_LIMIT 512 had already evicted the t19
+LEADER_CHANGE, so a `world.log.flush()` inserted before the shift failed the old test too.
+With CACHE_LIMIT raised so nothing evicts, the same mutation passes the test without the
+cache-clear and fails it with the clear (t19 rebuilt 44.87 against a live 43.86), so the
+check no longer depends on event volume.
+
+5000 ticks, |base − genesis| over surviving original countries, 28484f5 → this correction:
+
+| | 1337 before | 1337 after | 7 before | 7 after |
+|---|---|---|---|---|
+| gap mean / max | 5.18 / 9.87 | 2.94 / 5.63 | 10.03 / 18.90 | 3.27 / 9.47 |
+| severity>=2 | 235 | 224 | 211 | 195 |
+| REVOLUTION / COUP | 6 / 27 | 4 / 33 | 10 / 19 | 9 / 11 |
+
+One run per cell; the survivor sets differ (5→7 and 6→7 countries), so crisis counts are
+not attributable.
 
 ## 2026-09-13 — One drought erased a country's farms for good
 
