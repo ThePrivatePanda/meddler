@@ -226,6 +226,22 @@ def _cleanup_store(connection: sqlite3.Connection, path: str) -> None:
             os.remove(candidate)
 
 
+#: Widest tick window read through the `events_tick` index rather than the primary key.
+#: A segment's id bounds span its whole branch, so the unhinted plan walks every event in
+#: the branch whatever the window; the tick index reads only the window, then sorts it by
+#: id. Measured on seed 1337 at t1000 (116k events): a one-tick read went from 36 ms to
+#: under 1 ms, a ten-tick read of three shipment kinds from ~40 ms to 1.9 ms, and the two plans tie
+#: near 300 ticks, past which the sort makes the index slower (0.25 s -> 0.58 s over the
+#: whole history).
+_TICK_INDEX_MAX_SPAN = 100
+
+
+def _tick_window_hint(start_tick: int, end_tick: int) -> str:
+    """The index hint for a ``start_tick < tick <= end_tick`` read. Results are identical
+    either way: both queries carry the same predicate and ``ORDER BY id``."""
+    return "INDEXED BY events_tick" if end_tick - start_tick <= _TICK_INDEX_MAX_SPAN else ""
+
+
 class _HistoryStore:
     """One file-backed SQLite database shared by prime, snapshots, and fork views."""
 
@@ -926,9 +942,10 @@ class EventLog:
     def events_between(self, start_tick: int, end_tick: int) -> Iterator[Event]:
         """Stream events in deterministic id order for ``start_tick < tick <= end_tick``."""
         self.flush()
+        hint = _tick_window_hint(start_tick, end_tick)
         for segment in self._all_segments():
             rows = self._store.connection.execute(
-                """SELECT * FROM events
+                f"""SELECT * FROM events {hint}
                    WHERE branch=? AND id>=? AND id<? AND tick>? AND tick<=?
                    ORDER BY id""",
                 (segment.branch, segment.start, segment.end, start_tick, end_tick),
@@ -991,10 +1008,11 @@ class EventLog:
         if not kinds or end_tick <= start_tick:
             return ()
         placeholders = ",".join("?" for _ in kinds)
+        hint = _tick_window_hint(start_tick, end_tick)
         events: list[Event] = []
         for segment in self._all_segments():
             rows = self._store.connection.execute(
-                f"""SELECT * FROM events
+                f"""SELECT * FROM events {hint}
                     WHERE branch=? AND id>=? AND id<? AND tick>? AND tick<=?
                       AND kind IN ({placeholders})
                     ORDER BY id""",
