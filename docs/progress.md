@@ -1679,3 +1679,17 @@ redundant by (c), so neither was built.
 so `world_at` replays it as a no-op. The rule reads only the log, and a fork's log is a branch
 of prime's, so a fork reports prime's pending sinkings exactly as prime would. Golden output
 changes (new lone-loss lines). Regenerating it is master's job.
+
+**After.** Same runs. Seed 1337, 1000 ticks: 11 of 11 sinkings reported, 7 reports, convoy
+lines 7 of 133 headlines (5.3%, up from 2.3%). Seed 1337, 2000 ticks: 14 of 14, 9 reports,
+9 of 228 (3.9%). Seed 7, 2000 ticks: 5 of 5, 4 reports, 4 of 306 (1.3%). No unreported sinking
+is older than 36 ticks, and none is still pending at run end. Every other headline is the
+same event at the same tick. The golden diff shows the four added lines and, after t636,
+reworded lines, because template picks hash the shifted event ids. The cost shows in a hot war:
+seed 1337's t600–t696 sea war now carries seven convoy lines rather than three. One of them is
+Liesia's lone loss at t636, which reached the wait twelve ticks before its next three losses
+would have carried it. A longer wait would merge more, at the price of latency. That is a
+feel call, and the constant is `CONVOY_REPORT_MAX_WAIT_TICKS`.
+`test_a_lone_sinking_is_reported_once_it_has_waited` and
+`test_every_sinking_is_reported_exactly_once_and_on_time` both fail with the wait rule
+disabled, and `test_a_single_lost_convoy_reads_in_the_singular` covers the new lines.
