@@ -1831,3 +1831,37 @@ These are 1,500-tick runs, a single run per seed:
 Seed 7's FAMINE rose from 3 to 6 once its history diverged. VAZ now starves because the world
 is still short of food, not because its output reached zero. Treat these numbers as one run
 per seed. The golden master differs, starting at line 112, and was not regenerated.
+
+## 2026-09-14 — Occupied countries may import
+
+On seed 1337, TEF (from t120) and BOL (from t411) were occupied by LIE and stayed occupied
+for good. `trade.run` admitted only `ACTIVE` countries, so an occupied country got no imports
+and no famine relief. Its food stock stayed at 0, the shortage held inflation near 17, and
+together they cost about 40 points of stability. Both ways out need stability: annexation
+above 15, liberation above 50.
+
+Fix: occupied countries now import, including relief. They do not export, because
+`commodity_output` counts the tribute the occupier already takes. This breaks the old claim in
+the 2026-09-13 notes that trade only runs between `ACTIVE` countries, which was the reason
+shipments needed no annexation guard. Cargo can now be at sea when its destination is
+annexed. `logistics._arrive` pays the exporter and retires the shipment but stores nothing in a
+country that has left the world. Before this change, the new logistics test put 20 units into
+the annexed country. No new state or RNG. Three new tests fail without the change; the
+does-not-export test passes either way.
+
+1,500 ticks, a single run per seed:
+
+| | occupation episodes | food dispatches to occupied | every asset < 0.05 | infra fails | OCC / ANNEX / LIB | sev-2 |
+|---|---|---|---|---|---|---|
+| 1337 before | TEF t120-end (min stab 0), BOL t411-end (0), NUM t414-523 annexed (0) | 3 | BOL, TEF | 14 | 3 / 1 / 0 | 119 |
+| 1337 after | TEF t120-end (min stab 0) | 1,381 | TEF | 6 | 1 / 0 / 0 | 59 |
+| 7 before and after | none | 0 | none | 0 | 0 / 0 / 0 | 21 |
+
+**TEF still does not recover. This is not fixed yet.** Food is extractive, so tribute takes
+25% of TEF's food output (about 0.059 a tick), but trade sizes the deficit from gross output
+(need 0.287 minus output 0.237, so 0.049). Imports cover the gross gap and not the tribute,
+so the stock never climbs back past the shortage line. This comes from the base-run numbers.
+No probe has confirmed it. The likely next step is to size an occupied importer's deficit net
+of `commodity_production._occupation_tribute`. Seed 1337's other occupations vanished because
+the history diverged, not because they ended. Seed 7 has no occupation in 1,500 ticks, so it
+tests nothing here.
