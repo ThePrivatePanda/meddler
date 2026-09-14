@@ -310,8 +310,8 @@ register(
         # Its only parent, RESISTANCE_MOVEMENT, is a depth-1 child of the rare
         # OCCUPATION_BEGIN, so the 0.2 edge lands at 0.14 and fired well under once per
         # 5000-tick seed. Also a small-p exogenous root, like PROPAGANDA_CAMPAIGN, so it is
-        # actually reachable; roughly a fifth of the COUP rate at drama 1.0. Found via the
-        # catalog coverage test.
+        # actually reachable. Measured over 3 seeds x 2000 ticks: 12 against 25 coups at drama
+        # 1.0, 3 against 26 at the shipped 0.4. Found via the catalog coverage test.
         is_exogenous=True,
         exogenous_base_p=0.0015,
         is_intervention=False,
