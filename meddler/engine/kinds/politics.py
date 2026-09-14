@@ -238,7 +238,8 @@ register(
         stat_deltas={"stability": -8.0},
         # Fire-time gate: a country that has calmed back out of unrest during the delay
         # does not overturn its order. Set at the UNREST line rather than SECESSION's 20 so
-        # a famine-born revolution in a nation parked in the 20s by shortage still lands.
+        # a famine-born revolution still lands in a nation that shortage and inflation park
+        # just above 20 (seed 7's TAB sat at 27.5 for over 1,000 ticks with no food).
         # Also makes the temperament reset below (systems/politics.py) a move made only
         # from genuine collapse.
         conditions=[Condition(stat="stability", op="<", value=35.0, target="primary")],
