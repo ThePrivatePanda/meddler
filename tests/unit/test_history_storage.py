@@ -138,5 +138,11 @@ def test_new_store_removes_stores_orphaned_by_killed_processes_only(
         finally:
             log.close()
     finally:
-        live.kill()
-        live.wait(timeout=60)
+        # Let the live child exit normally so its own finalizer removes its store.
+        assert live.stdin is not None
+        live.stdin.close()
+        try:
+            live.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            live.kill()
+            live.wait(timeout=60)
