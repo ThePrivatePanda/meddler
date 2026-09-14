@@ -209,6 +209,9 @@ _CHAOS_NOUN: dict[str, str] = {
     "SCANDAL": "scandal",
     "PROPAGANDA_CAMPAIGN": "a propaganda blitz",
     "CIVIL_RIGHTS_REFORM": "civil rights reform",
+    "ASSASSINATION": "an assassin's bullet",
+    "BRAIN_DRAIN": "an exodus of talent",
+    "EDUCATION_REFORM": "school reform",
     "EPIDEMIC_FEAR": "a health scare",
     "SPORTS_VICTORY": "a cup final",
 }
