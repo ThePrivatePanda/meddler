@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -99,23 +99,15 @@ def _store_files(path: str) -> list[str]:
 
 
 def test_new_store_removes_stores_orphaned_by_killed_processes_only(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A finalizer cannot run under SIGKILL, so a killed run's store must be reclaimable by
     the next one -- while a store whose process is still running is never touched."""
-    env = {**os.environ, "TMPDIR": str(tmp_path)}
-    killed = subprocess.run(
-        [sys.executable, "-c", _OPEN_STORE, "kill"],
-        capture_output=True,
-        text=True,
-        env=env,
-        timeout=60,
-    )
-    assert killed.returncode == -signal.SIGKILL
-    orphan = killed.stdout.strip()
-    assert os.path.dirname(orphan) == str(tmp_path)
-    assert len(_store_files(orphan)) == 3
-
+    # Not tmp_path: pytest refuses a base directory it does not own, which a TMPDIR on some
+    # mounts is. mkdtemp honours TMPDIR without that check.
+    directory = tempfile.mkdtemp(prefix="meddler-orphan-test-")
+    env = {**os.environ, "TMPDIR": directory}
+    # The live store opens first, so only the store created below can sweep the orphan.
     live = subprocess.Popen(
         [sys.executable, "-c", _OPEN_STORE, "wait"],
         stdin=subprocess.PIPE,
@@ -128,10 +120,22 @@ def test_new_store_removes_stores_orphaned_by_killed_processes_only(
         live_path = live.stdout.readline().strip()
         assert len(_store_files(live_path)) == 3
 
-        monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+        killed = subprocess.run(
+            [sys.executable, "-c", _OPEN_STORE, "kill"],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=60,
+        )
+        assert killed.returncode == -signal.SIGKILL
+        orphan = killed.stdout.strip()
+        assert os.path.dirname(orphan) == directory
+        assert len(_store_files(orphan)) == 3
+
+        monkeypatch.setattr(tempfile, "tempdir", directory)
         log = EventLog()
         try:
-            assert os.path.dirname(log.database_path) == str(tmp_path)
+            assert os.path.dirname(log.database_path) == directory
             assert _store_files(orphan) == []
             assert len(_store_files(live_path)) == 3
             assert len(_store_files(log.database_path)) == 3
@@ -146,3 +150,4 @@ def test_new_store_removes_stores_orphaned_by_killed_processes_only(
         except subprocess.TimeoutExpired:
             live.kill()
             live.wait(timeout=60)
+        shutil.rmtree(directory, ignore_errors=True)
