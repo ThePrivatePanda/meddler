@@ -11,7 +11,7 @@ Because the fork keeps the original's dice, every difference on screen is yours.
 
 ![Meddler: the globe, the front page, and a crisis traced back to its cause](docs/media/hero.png)
 
-**[Try it in your browser](https://privatepanda.co/projects/meddler/demo/)**: the real Python engine, running in the page. Nothing to
+**[Try it in your browser](https://privatepanda.co/meddler/)**: the real Python engine, running in the page. Nothing to
 install; the first load takes a moment.
 
 ## Run it locally
