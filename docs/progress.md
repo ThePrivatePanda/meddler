@@ -1622,3 +1622,30 @@ needs at least ninety ticks of occupation first, which is far longer than any tr
 claims that particular crisis classes never fire. The "six crisis classes fired zero times"
 line above was a measurement on the seeds sampled at the time, and the 2026-09-11 entry already
 records that five of them now fire.
+
+## 2026-09-13 — Assassination was starved, not dead
+
+The catalog coverage run (20 seeds, 5000 ticks, drama 1.0) never saw an ASSASSINATION. The
+kind's only organic parent was RESISTANCE_MOVEMENT, itself a 0.5 child of OCCUPATION_BEGIN.
+Tracing the chain found no drop anywhere on it. In 3 seeds × 2000 ticks there were 7
+occupations and 2 resistance movements, and 0 assassinations were queued. Over 2 seeds × 5000
+ticks there were 6 occupations and 3 resistance movements. Resistance fires at depth 1, so the
+0.2 edge rolls at 0.2 × 0.7 = 0.14. Occupation happens only a few times per seed before
+conquest consolidates the map. The expected count was well under one per seed, and some of
+those would be lost to annexation, which can come before the 40–120 tick chain finishes.
+Forcing the rolls shows the edge itself works: a resistance movement queued an assassination,
+and it fired at depth 1.
+
+ASSASSINATION now also rolls as an exogenous root (p 0.0015, scaled by drama). That is how
+PROPAGANDA_CAMPAIGN and CIVIL_RIGHTS_REFORM were made reachable. It is gated on the target's
+stability being below 20, the same gate SECESSION uses. Some country is below 20 on about
+three ticks in four, so the gate picks a plausible target and the probability keeps it rare.
+The resistance edge stays, and the gate now applies to it at fire time too. No state was
+added. Side effect: INTERVENE_CHAOS draws from the sorted exogenous kinds, so it can now
+resolve to an assassination, and a given RNG state may pick a different kind.
+
+Over 3 seeds × 2000 ticks, assassinations went from 0 to 12 at drama 1.0 (25 coups) and from
+0 to 3 at the shipped drama of 0.4 (26 coups). In `tests/unit/test_assassination_root.py`,
+the forced-roll root test fails before the change and passes after it. Two guards pass on
+both sides: a stable world rolls no assassination, and the resistance edge still fires. The
+extra roll each tick changes the golden master, which needs regenerating.
