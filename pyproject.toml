@@ -47,7 +47,17 @@ Issues = "https://github.com/ThePrivatePanda/meddler/issues"
 Changelog = "https://github.com/ThePrivatePanda/meddler/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
-dev = ["pytest", "hypothesis", "ruff", "mypy", "import-linter", "pytest-cov", "pytest-xdist"]
+dev = [
+    "pytest",
+    "hypothesis",
+    # Linters are pinned: a new release adds rules, and CI must judge the tree the same way a
+    # contributor's checkout does.
+    "ruff==0.15.20",
+    "mypy==2.2.0",
+    "import-linter==2.13",
+    "pytest-cov",
+    "pytest-xdist",
+]
 
 [project.scripts]
 meddler = "meddler.cli:main"
