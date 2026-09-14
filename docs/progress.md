@@ -1649,3 +1649,33 @@ Over 3 seeds × 2000 ticks, assassinations went from 0 to 12 at drama 1.0 (25 co
 the forced-roll root test fails before the change and passes after it. Two guards pass on
 both sides: a stable world rolls no assassination, and the resistance edge still fires. The
 extra roll each tick changes the golden master, which needs regenerating.
+
+## 2026-09-13 — Every sunk convoy reaches the chronicle
+
+**Before.** The review's 44% / 82% unreported figures were taken against the clock-anchored
+window. This tree already counts since each destination's last report, and the residue is
+smaller but still structural. Measured with `tickloop.tick` and a scan of the log: seed 1337,
+1000 ticks: 11 `SHIPMENT_LOST`, 3 reports, **3 sinkings (27%) never reported**, convoy lines
+3 of 129 headlines. Seed 1337, 2000 ticks: 14 lost, 4 reports, **4 unreported (29%)**, 4 of
+223. Seed 7, 2000 ticks: 5 lost, 2 reports, **1 unreported (20%)**, 2 of 304. Every unreported
+sinking was the only one its destination suffered that season, and every one had already
+aged out of the lookback. `CONVOY_REPORT_MIN_LOSSES = 2` makes a lone sinking unreportable by
+construction. Convoy spam is no longer a live risk: at `SEA_INTERDICTION_P = 0.0015` sinkings
+run at under one per 100 ticks, and the 36% figure predates that value.
+
+**Design.** `CONVOY_LOSSES` stays the only visible kind and stays derived from the log. At each
+12-tick boundary, a destination's unreported sinkings are reported when any of these holds:
+(a) there are at least two; (b) relief is among them; (c) the oldest has waited
+`CONVOY_REPORT_MAX_WAIT_TICKS` (24). The lookback is at least `MAX_WAIT + INTERVAL` ticks,
+whatever the calendar. A sinking at tick t is therefore still unreported, and still inside
+the lookback, at the first boundary b >= t + 24. Since b - t <= 24 + 11, rule (c) fires
+there. No sinking can be silent for more than 35 ticks, and none can age out. A report whose
+count is one gets singular lines, with a relief form. Rate: at most one report per
+destination per interval, as before. At today's sinking rates that is about one line per
+isolated loss, or 1–3% of the feed. "First loss on a lane" and per-war tallies are made
+redundant by (c), so neither was built.
+
+**Replay.** Unchanged in kind. The report records no ledger, stat delta or structural effect,
+so `world_at` replays it as a no-op. The rule reads only the log, and a fork's log is a branch
+of prime's, so a fork reports prime's pending sinkings exactly as prime would. Golden output
+changes (new lone-loss lines). Regenerating it is master's job.
