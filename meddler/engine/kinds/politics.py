@@ -174,6 +174,15 @@ register(
         consequences=[
             # SECESSION's own fire-time condition (stability < 20) gates whether it lands.
             ConsequenceRule("SECESSION", base_p=0.5, delay_min=20, delay_max=60, target="same"),
+            # Extends PROPOSAL §6.6.3, whose only REVOLUTION parent is FAMINE. That made
+            # revolution a food event: a world whose trade relief works never reaches
+            # grain_stock 0 (relief engages at 15 days of need, above both famine lines),
+            # so political collapse -- stability under 15 -- could split a country or
+            # topple a ruler but never overturn the order. Threshold-emitted, this fires at
+            # depth 1, so the spawn chance is 0.3 x cascade_decay.
+            ConsequenceRule(
+                "REVOLUTION", base_p=0.3, delay_min=10, delay_max=40, target="same"
+            ),
         ],
         tags=frozenset({"politics", "war"}),
     )
@@ -227,6 +236,12 @@ register(
         exogenous_base_p=0.0,
         is_intervention=False,
         stat_deltas={"stability": -8.0},
+        # Fire-time gate: a country that has calmed back out of unrest during the delay
+        # does not overturn its order. Set at the UNREST line rather than SECESSION's 20 so
+        # a famine-born revolution in a nation parked in the 20s by shortage still lands.
+        # Also makes the temperament reset below (systems/politics.py) a move made only
+        # from genuine collapse.
+        conditions=[Condition(stat="stability", op="<", value=35.0, target="primary")],
         consequences=[
             ConsequenceRule("LEADER_CHANGE", base_p=1.0, delay_min=0, delay_max=2, target="same"),
             ConsequenceRule(

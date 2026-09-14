@@ -179,8 +179,9 @@ class Country:
     # (not cleared on end, exactly matching the old latest-OCCUPATION_BEGIN scan).
     occupation_start_tick: int | None = None
 
-    # The country's stability equilibrium, drawn once at worldgen from
-    # settings.starting_stability_range and never changed. Its national temperament:
+    # The country's stability equilibrium, drawn at worldgen from
+    # settings.starting_stability_range and moved only by recorded events (a god edit to
+    # stability, a change of leader, a revolution). Its national temperament:
     # systems/stability.py pulls stability toward it, so two countries in identical
     # circumstances settle at different levels. Before mean reversion this draw decided only
     # how many ticks a country took to reach 100 like everyone else, so the world-generation

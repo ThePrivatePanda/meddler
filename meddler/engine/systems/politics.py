@@ -96,6 +96,64 @@ def _replace_leader(world: World, rng: Rng, event: Event) -> None:
     country.leader.traits = new_traits
     event.payload["new_leader_name"] = new_name
     event.payload["new_leader_traits"] = ",".join(new_traits)
+    good = sum(1 for trait in new_traits if trait in config.LEADER_GOOD_TRAITS)
+    bad = sum(1 for trait in new_traits if trait in config.LEADER_BAD_TRAITS)
+    _shift_base_stability(
+        event, country, (good - bad) * config.LEADER_TEMPERAMENT_TRAIT_SHIFT
+    )
+
+
+def _shift_base_stability(event: Event, country: Country, requested: float) -> None:
+    """Move a country's temperament (the target stability reverts toward) and record it.
+
+    base_stability is state no StatDelta on this event carries -- the event was frozen by
+    EventLog.append before the structural handler ran -- so the realised, post-clamp shift
+    goes on the payload for the replay handler, the same contract as the strike and the
+    leader swap, and into the effects index so the change is traceable. Without the record,
+    world_at would rebuild the genesis temperament and a fork taken off that reconstruction
+    would revert toward the wrong target and pull away from prime a little every tick.
+    """
+    before = country.base_stability
+    after = max(0.0, min(100.0, before + requested))
+    shift = after - before
+    event.payload["base_stability_shift"] = shift
+    if shift == 0.0:
+        return
+    country.base_stability = after
+    record_structural_effect(
+        event,
+        target=country.code,
+        metric="base_stability",
+        before=before,
+        after=after,
+        delta=shift,
+    )
+
+
+def _replay_base_stability_shift(world: World, event: Event) -> None:
+    """RNG-free counterpart of _shift_base_stability. Events recorded before the shift
+    existed carry no key and replay as no change."""
+    if event.country is None:
+        return
+    shift = event.payload.get("base_stability_shift")
+    if isinstance(shift, (int, float)) and shift != 0.0:
+        world.country(event.country).base_stability += float(shift)
+
+
+def _revolution(world: World, rng: Rng, event: Event) -> None:
+    """Structural handler for REVOLUTION: the temperament moves part of the way back to the
+    middle of the genesis range, a new social contract rather than a new ruler (the ruler
+    is the LEADER_CHANGE child's job, and its traits shift the temperament again)."""
+    if event.country is None:
+        return
+    country = world.country(event.country)
+    low, high = world.settings.starting_stability_range
+    midpoint = (low + high) / 2.0
+    _shift_base_stability(
+        event,
+        country,
+        config.REVOLUTION_TEMPERAMENT_RESET_SHARE * (midpoint - country.base_stability),
+    )
 
 
 def _begin_occupation(world: World, rng: Rng, event: Event) -> None:
@@ -147,6 +205,7 @@ def _replay_leader_change(world: World, event: Event) -> None:
     country = world.country(event.country)
     country.leader.name = name
     country.leader.traits = traits_csv.split(",")
+    _replay_base_stability_shift(world, event)
 
 
 def _replay_occupation_begin(world: World, event: Event) -> None:
@@ -926,6 +985,8 @@ structural.register_structural("EMBARGO", _impose_embargo)
 structural.register_replay("ALLIANCE", _replay_form_alliance)
 structural.register_replay("ALLIANCE_BROKEN", _replay_break_alliance)
 structural.register_replay("EMBARGO", _replay_impose_embargo)
+structural.register_structural("REVOLUTION", _revolution)
+structural.register_replay("REVOLUTION", _replay_base_stability_shift)
 
 # God-mode twins run the SAME live and replay handlers as their organic kinds, so an
 # intervened war/peace/alliance/embargo is indistinguishable in state from an organic one

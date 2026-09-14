@@ -305,6 +305,22 @@ STABILITY_WAR_PENALTY = 0.3
 # which would make the most-used god lever the most obviously temporary one. Partial rather
 # than whole: the meddler shifts a nation's character, they do not redefine it.
 GOD_EDIT_TEMPERAMENT_SHARE = 0.5
+# Regime change moves the temperament too, so a nation's equilibrium is not fixed at its
+# genesis draw for its whole life. Every change of ruler -- a lost election, a coup, a
+# revolution -- converges on LEADER_CHANGE, and the new leader's traits shift where the
+# country settles: each of LEADER_GOOD_TRAITS adds the shift, each of LEADER_BAD_TRAITS
+# subtracts it. Two good and two bad traits out of eight, so the expected shift of a random
+# successor is zero and repeated handovers wander rather than ratchet toward a clamp. Sized
+# so one handover is a visible glide (reversion closes 2% of the gap per tick, so about
+# 50 ticks) without redrawing the country.
+LEADER_TEMPERAMENT_TRAIT_SHIFT = 3.0
+LEADER_GOOD_TRAITS = frozenset({"reformist", "technocrat"})
+LEADER_BAD_TRAITS = frozenset({"corrupt", "warhawk"})
+# A revolution replaces the social contract rather than one ruler: the temperament moves
+# this share of the way toward the middle of the genesis range. That is the way off the
+# bottom for a collapsed nation -- a coup cannot provide it, because coups only happen below
+# COUP_STABILITY_THRESHOLD and a coup-driven fall would rebuild a clamp attractor at zero.
+REVOLUTION_TEMPERAMENT_RESET_SHARE = 0.5
 
 # --- InfrastructureSystem (§6.7.2) ---
 # §6.7.2 gives the maintenance/degradation/recovery FORMULAS exactly, but every rate is
