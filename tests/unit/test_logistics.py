@@ -4,7 +4,7 @@ interdiction, relief, and world_at replay of in-flight shipments."""
 import pytest
 
 from meddler.engine import commodities, config
-from meddler.engine.model import Position, WorldSettings
+from meddler.engine.model import CountryStatus, Position, WorldSettings
 from meddler.engine.rng import Rng
 from meddler.engine.systems import logistics, trade
 from meddler.engine.timeline import Timeline
@@ -539,3 +539,26 @@ def test_convoy_losses_reports_each_destination_in_a_stable_order():
     reports = [e for e in logistics.run(world, Rng(1)) if e.kind == "CONVOY_LOSSES"]
 
     assert [e.country for e in reports] == sorted([a, b, c])
+
+
+def test_cargo_for_a_country_annexed_in_transit_is_written_off():
+    """Occupied countries import, and annexation may land while their cargo is at sea. The
+    exporter is still paid and the shipment still retires, but nothing is stored in a
+    country that has left the world."""
+    world = _clean_world(2, seed=5)
+    imp, exp = _sorted_countries(world)
+    _set_food_gap(imp, exp)
+    imp.commodity_stock["food"] = 0.0
+    trade.run(world, Rng(1))
+    ship = world.shipments[0]
+    exp_corporates0 = exp.pools["corporates"]
+    imp.status = CountryStatus.ANNEXED
+
+    world.tick = ship.arrive_tick
+    events = logistics.run(world, Rng(1))
+
+    assert not world.shipments
+    assert [e.kind for e in events] == ["SHIPMENT_ARRIVED"]
+    assert events[0].stat_deltas == ()
+    assert imp.commodity_stock["food"] == 0.0
+    assert exp.pools["corporates"] == exp_corporates0 + ship.proceeds

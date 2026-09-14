@@ -130,19 +130,24 @@ def _remaining_capacity(
 
 def run(world: World, rng: Rng) -> list[Event]:
     events: list[Event] = []
-    active = [c for c in world.living_countries() if c.status == CountryStatus.ACTIVE]
-    by_code = {c.code: c for c in active}
+    # An OCCUPIED country still exists and still eats, so it may IMPORT (and receive relief).
+    # It may not EXPORT: its `commodity_output` is gross of the occupation tribute that
+    # commodity_production hands the occupier, so a surplus read here would sell goods the
+    # occupier has already taken. Excluding occupied importers outright used to starve them
+    # into a shortage whose stability penalty blocked both exits from occupation.
+    participants = world.living_countries()
+    by_code = {c.code: c for c in participants}
     # (country, carrier) -> commodity units this country can still load OR land this tick.
     budgets: dict[tuple[str, str], float] = {}
 
     for name in commodities.ORDER:
         deficits: list[tuple[str, float]] = []  # (code, deficit qty > 0)
         surplus: dict[str, float] = {}  # code -> remaining exportable qty
-        for c in active:
+        for c in participants:
             balance = c.commodity_output[name] - c.commodity_need[name]
             if balance < 0:
                 deficits.append((c.code, -balance))
-            elif balance > 0:
+            elif balance > 0 and c.status == CountryStatus.ACTIVE:
                 surplus[c.code] = balance
         if not deficits or not surplus:
             continue

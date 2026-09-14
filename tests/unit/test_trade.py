@@ -7,7 +7,7 @@ SHIPMENT_DISPATCHED event carrying the price and quantity."""
 import pytest
 
 from meddler.engine import commodities, config, space
-from meddler.engine.model import Bloc, WorldSettings
+from meddler.engine.model import Bloc, CountryStatus, WorldSettings
 from meddler.engine.rng import Rng
 from meddler.engine.systems import logistics, trade
 from meddler.engine.worldgen import generate_world
@@ -459,3 +459,49 @@ def test_relief_still_debits_the_budget_so_it_crowds_out_commercial_cargo():
     assert by_dest.get(starving.code) == pytest.approx(30.0)  # relief lifted in full
     # the commercial buyer is left with the exhausted (now negative) budget
     assert by_dest.get(buyer.code, 0.0) < 30.0
+
+
+# --- Occupied countries: they still eat, but the occupier holds the exports -------------
+
+
+def _occupy(occupied, occupier) -> None:
+    occupied.status = CountryStatus.OCCUPIED
+    occupied.occupied_by = occupier.code
+    occupied.occupation_start_tick = 0
+
+
+def test_an_occupied_country_imports_what_it_lacks():
+    """Excluding occupied importers starved them into a shortage whose stability penalty
+    blocked both annexation and liberation, so occupation never ended."""
+    world = _clean_world(2, seed=5)
+    imp, exp = _sorted_countries(world)
+    _occupy(imp, exp)
+    imp.commodity_output["food"] = imp.commodity_need["food"] - 20.0
+    exp.commodity_output["food"] = exp.commodity_need["food"] + 30.0
+    fills = _dispatches(trade.run(world, Rng(1)))
+    assert [(f.payload["origin"], f.payload["dest"]) for f in fills] == [(exp.code, imp.code)]
+    assert fills[0].payload["qty"] == pytest.approx(20.0)
+
+
+def test_a_famine_struck_occupied_country_gets_relief_from_a_friend():
+    world = _clean_world(2, seed=5)
+    imp, exp = _sorted_countries(world)
+    _occupy(imp, exp)
+    imp.commodity_output["food"] = imp.commodity_need["food"] - 20.0
+    exp.commodity_output["food"] = exp.commodity_need["food"] + 30.0
+    imp.commodity_stock["food"] = 0.0  # famine-critical
+    world.relations[_pair(imp.code, exp.code)] = 70.0
+    fills = _dispatches(trade.run(world, Rng(1)))
+    assert len(fills) == 1
+    assert fills[0].payload["relief"] == 1
+
+
+def test_an_occupied_country_does_not_export():
+    """Its output is gross of the tribute the occupier already takes; selling the surplus
+    would sell goods it no longer holds."""
+    world = _clean_world(2, seed=5)
+    occupied, occupier = _sorted_countries(world)
+    _occupy(occupied, occupier)
+    occupier.commodity_output["food"] = occupier.commodity_need["food"] - 20.0
+    occupied.commodity_output["food"] = occupied.commodity_need["food"] + 30.0
+    assert _dispatches(trade.run(world, Rng(1))) == []

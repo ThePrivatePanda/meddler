@@ -233,6 +233,11 @@ def _arrive(world: World, rng: Rng, ship: Shipment) -> Event:
     current = importer.commodity_stock[ship.commodity]
     new_stock = min(ceiling, current + ship.qty)
     delta = new_stock - current
+    if not importer.in_world:
+        # Occupied countries import, and annexation can land while their cargo is at sea.
+        # The annexer already took the stock at annexation; late cargo has no one to land
+        # for, so it is written off rather than stored in a country that no longer exists.
+        delta = 0.0
 
     ledger: list[LedgerEntry] = []
     if ship.proceeds > 0:
